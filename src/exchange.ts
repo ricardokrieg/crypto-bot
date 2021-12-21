@@ -130,14 +130,18 @@ class Exchange {
     return rate
   }
 
-  async buy(contract: Contract, amount: number): Promise<TransactionReceipt> {
+  async buy(contract: Contract, amount: number, rate: number, slippage: number, maxPrice: number): Promise<TransactionReceipt> {
+    if (rate * this.bnb_price > maxPrice) {
+      throw new Error(`Max Price exceeded: $${(rate * this.bnb_price)} > $${maxPrice}`)
+    }
+
     const originalAmount = amount
     amount = amount * Math.pow(10, this._wbnbContract.decimals)
 
-    // TODO calculate based on rate and slippage
-    const amountOutMin = parseInt('100' + Math.random().toString().slice(2, 6))
+    const amountOut = originalAmount / rate
+    const amountOutMin = ( amountOut * Math.pow(10, contract.decimals) ) * ( 1 / ( 1 + ( slippage / 100 ) ) )
 
-    logger.info(`Spending ${originalAmount} (${amount}) BNB to buy min. ${amountOutMin} ${contract.symbol}`)
+    logger.info(`Spending ${originalAmount} (${amount}) BNB to buy ${amountOut} ${contract.symbol} (min: ${amountOutMin}) (slippage: ${slippage}%)`)
 
     const data = await this._pancakeRouterContract.swapExactETHForTokens(
       amountOutMin,

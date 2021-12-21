@@ -18,12 +18,18 @@ import Contract from '../src/contract'
   const contract = new Contract(Config.instance.tokenAddress())
   await contract.fetchInfo()
 
-  // await exchange.transactionCount()
-  // await exchange.bnbBalance()
-  // await exchange.tokenBalance(contract)
-  //
-  // await exchange.getRate(contract)
+  await exchange.transactionCount()
+  await exchange.bnbBalance()
+  await exchange.tokenBalance(contract)
 
-  // const transaction = await exchange.buy(contract, 0.001)
-  // console.log(transaction.transactionHash)
+  const rate = await exchange.getRate(contract)
+
+  const transaction = await exchange.buy(
+    contract,
+    0.001,
+    rate,
+    parseInt(Config.instance.slippage()),
+    parseFloat(Config.instance.maxPrice())
+  )
+  console.log(transaction.transactionHash)
 })()

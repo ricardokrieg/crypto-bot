@@ -24,6 +24,8 @@ class Config {
       'WBNB_ADDRESS',
       'MAX_BUY_FEE',
       'MAX_SELL_FEE',
+      'SLIPPAGE',
+      'MAX_PRICE',
     ]
 
     this.envVars = {}
@@ -93,6 +95,14 @@ class Config {
 
   maxSellFee() {
     return this.get('MAX_SELL_FEE')
+  }
+
+  slippage() {
+    return this.get('SLIPPAGE')
+  }
+
+  maxPrice() {
+    return this.get('MAX_PRICE')
   }
 }
 
