@@ -189,6 +189,49 @@ class Exchange {
     return result
   }
 
+  async sell(contract: Contract, amountInGwei: BigNumber): Promise<TransactionReceipt> {
+    const amountInCoin = Utils.amountFromGweiToCoin(amountInGwei, contract.decimals)
+    const amountOutMin = new BigNumber(1)
+    const amountOutMinInCoin = Utils.amountFromGweiToCoin(amountOutMin, 18)
+
+    logger.info(`Sell Details:`)
+    logger.info(`${contract.name}: ${amountInGwei.toString(10)} (${amountInCoin.toString(10)} ${contract.symbol})`)
+    logger.info(`Minimum ${amountOutMin.toString(10)} (${amountOutMinInCoin.toString(10)} BNB)`)
+
+    const data = await this._pancakeRouterContract.swapExactTokensForETH(
+      amountInGwei,
+      amountOutMin,
+      [ contract.address, this.wbnbAddress ],
+      this.address
+    )
+
+    const count = await this.transactionCount()
+    const rawTransaction = {
+      'from': this.address,
+      // TODO correct set gas price (in GWEI)
+      'gasPrice': Web3Builder.instance.web3.utils.toHex(5000000000),
+      // TODO correct set gas limit (based on current estimate)
+      'gasLimit': Web3Builder.instance.web3.utils.toHex(500000),
+      'to': this.pancakeRouterAddress,
+      'value': Web3Builder.instance.web3.utils.toHex(0),
+      'data': data.encodeABI(),
+      'nonce': Web3Builder.instance.web3.utils.toHex(count)
+    }
+
+    logger.info(rawTransaction)
+
+    const transaction = new Tx(rawTransaction, { 'common': Web3Builder.instance.bscFork })
+    transaction.sign(this.privateKey)
+
+    const result = await Web3Builder.instance.web3.eth.sendSignedTransaction(
+      '0x' + transaction.serialize().toString('hex')
+    )
+    logger.info(`Transaction`)
+    logger.info(result)
+
+    return result
+  }
+
   async approve(contract: Contract, amountInGwei: BigNumber) {
     logger.info(`Approving ${contract.symbol} to spend ${amountInGwei} (${Utils.amountFromGweiToCoin(amountInGwei, 18).toString(10)} BNB)`)
 

@@ -79,8 +79,21 @@ class Contract {
     if (this._contract === null) await this.fetchContract()
 
     // @ts-ignore
-    return this._contract.methods.swapExactETHForTokens(
+    return this._contract.methods.swapExactETHForTokensSupportingFeeOnTransferTokens(
       Web3Builder.instance.web3.utils.toHex(minAmount.toString(10)),
+      addresses,
+      fromAddress,
+      Web3Builder.instance.web3.utils.toHex(Math.round(Date.now() / 1000) + 60 * 20),
+    )
+  }
+
+  async swapExactTokensForETH(amountToSellInGwei: BigNumber, minAmountInGwei: BigNumber, addresses: string[], fromAddress: string): Promise<any> {
+    if (this._contract === null) await this.fetchContract()
+
+    // @ts-ignore
+    return this._contract.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(
+      Web3Builder.instance.web3.utils.toHex(amountToSellInGwei.toString(10)),
+      Web3Builder.instance.web3.utils.toHex(minAmountInGwei.toString(10)),
       addresses,
       fromAddress,
       Web3Builder.instance.web3.utils.toHex(Math.round(Date.now() / 1000) + 60 * 20),

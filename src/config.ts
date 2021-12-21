@@ -26,6 +26,9 @@ class Config {
       'MAX_SELL_FEE',
       'SLIPPAGE',
       'MAX_PRICE',
+      'TAKE_PROFIT',
+      'STOP_LOSS',
+      'AMOUNT_IN_BNB',
     ]
 
     this.envVars = {}
@@ -103,6 +106,18 @@ class Config {
 
   maxPrice() {
     return this.get('MAX_PRICE')
+  }
+
+  takeProfit() {
+    return this.get('TAKE_PROFIT')
+  }
+
+  stopLoss() {
+    return this.get('STOP_LOSS')
+  }
+
+  amountInBNB() {
+    return this.get('AMOUNT_IN_BNB')
   }
 }
 

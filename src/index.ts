@@ -79,7 +79,7 @@ import BigNumber from "bignumber.js";
     }
   }
 
-  const amountInCoin = new BigNumber('0.001')
+  const amountInCoin = new BigNumber(Config.instance.amountInBNB())
   const amountInGwei = Utils.amountFromCoinToGwei(amountInCoin, 18)
   const transaction = await exchange.buy(
     contract,
@@ -88,7 +88,7 @@ import BigNumber from "bignumber.js";
     parseInt(Config.instance.slippage()),
     parseFloat(Config.instance.maxPrice())
   )
-  console.log(transaction.transactionHash)
+  logger.info(transaction.transactionHash)
 
   if (!transaction.status) {
     logger.error('Transaction Failed')
@@ -111,7 +111,10 @@ import BigNumber from "bignumber.js";
   const effectiveRate = amountInGwei.div(amountOut)
 
   // TODO check if has allowance before approving
-  // await exchange.approve(contract, amount * 5)
+  await exchange.approve(contract, amountOut)
+
+  const takeProfit = parseFloat(Config.instance.takeProfit())
+  const stopLoss = parseFloat(Config.instance.takeProfit()) * -1
 
   while (true) {
     const blockNumber = await Web3Builder.instance.web3.eth.getBlockNumber()
@@ -142,12 +145,26 @@ import BigNumber from "bignumber.js";
         logger.info(`Loss: $${pl.toString(10)}`)
       }
 
-      if (percentage.gte(1)) {
+      logger.info(`Take Profit:  ${takeProfit}%`)
+      logger.info(`Stop Loss  : ${stopLoss}%`)
+
+      let exit = false
+      if (percentage.gte(takeProfit)) {
         logger.info(`Exiting with Profit!`)
-        // TODO sell tokens
-      } else if (percentage.lte(-2)) {
+        exit = true
+      } else if (percentage.lte(stopLoss)) {
         logger.info(`Exiting with Loss!`)
-        // TODO sell tokens
+        exit = true
+      }
+
+      if (exit) {
+        const transaction = await exchange.sell(
+          contract,
+          amountOut
+        )
+        logger.info(transaction.transactionHash)
+
+        break
       }
     }
   }

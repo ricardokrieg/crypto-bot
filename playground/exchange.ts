@@ -28,12 +28,16 @@ import Utils from '../src/utils'
 
   // await exchange.approve(contract, Utils.amountFromCoinToGwei(new BigNumber('0.01'), 18))
 
-  const transaction = await exchange.buy(
+  // const transaction = await exchange.buy(
+  //   contract,
+  //   Utils.amountFromCoinToGwei(new BigNumber('0.001'), 18),
+  //   rate,
+  //   parseInt(Config.instance.slippage()),
+  //   parseFloat(Config.instance.maxPrice())
+  // )
+  const transaction = await exchange.sell(
     contract,
-    Utils.amountFromCoinToGwei(new BigNumber('0.001'), 18),
-    rate,
-    parseInt(Config.instance.slippage()),
-    parseFloat(Config.instance.maxPrice())
+    Utils.amountFromCoinToGwei(new BigNumber('0.01'), contract.decimals)
   )
   console.log(transaction.transactionHash)
 })()
