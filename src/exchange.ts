@@ -4,9 +4,11 @@ import { pick } from 'lodash'
 import { Transaction as Tx } from 'ethereumjs-tx'
 import { TransactionReceipt } from 'web3-core'
 const axios = require('axios').default
+import BigNumber from 'bignumber.js'
 
 import Web3Builder from './web3_builder'
 import Contract from './contract'
+import Utils from './utils'
 
 const logger = createLogger('exchange')
 
@@ -29,7 +31,7 @@ class Exchange {
   private readonly _pancakeRouterContract: Contract
   private readonly _wbnbContract: Contract
 
-  bnb_price: number
+  bnb_price: BigNumber
 
   constructor(config: IExchangeConfig) {
     this.address = config.address
@@ -42,7 +44,7 @@ class Exchange {
     this._pancakeRouterContract = new Contract(this.pancakeRouterAddress, false)
     this._wbnbContract = new Contract(this.wbnbAddress)
 
-    this.bnb_price = 0
+    this.bnb_price = new BigNumber(0)
 
     logger.info(util.inspect(
       pick(this, ['address', 'pancakeFactoryAddress', 'pancakeRouterAddress', 'wbnbAddress']),
@@ -56,14 +58,14 @@ class Exchange {
     await this._wbnbContract.fetchInfo()
   }
 
-  async fetchBNBPrice(skipCache: boolean = false): Promise<number> {
-    if (!skipCache && this.bnb_price !== 0) return this.bnb_price
+  async fetchBNBPrice(skipCache: boolean = false): Promise<BigNumber> {
+    if (!skipCache && !this.bnb_price.isZero()) return this.bnb_price
 
     const response = await axios.get('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
     logger.info(response.data)
 
-    this.bnb_price = parseFloat(response.data['price'])
-    logger.info(`BNB = $${this.bnb_price}`)
+    this.bnb_price = new BigNumber(response.data['price'])
+    logger.info(`BNB = $${this.bnb_price.toString(10)}`)
 
     return this.bnb_price
   }
@@ -76,21 +78,20 @@ class Exchange {
     return count
   }
 
-  async bnbBalance(): Promise<number> {
-    let balance = parseFloat(await Web3Builder.instance.web3.eth.getBalance(this.address))
-    balance = balance / Math.pow(10, 18)
+  async bnbBalance(): Promise<BigNumber> {
+    const balance = new BigNumber(await Web3Builder.instance.web3.eth.getBalance(this.address))
 
-    logger.info(`BNB Balance: ${balance}`)
+    logger.info(`BNB Balance: ${balance} (${Utils.amountFromGweiToCoin(balance, 18).toString(10)} BNB)`)
 
     return balance
   }
 
-  async tokenBalance(contract: Contract, address?: string): Promise<number> {
-    const intBalance = await contract.balance(address || this.address)
-    const balance = intBalance / Math.pow(10, contract.decimals)
+  async tokenBalance(contract: Contract, address?: string, skipLogs: boolean = false): Promise<BigNumber> {
+    const balance = await contract.balance(address || this.address)
 
-    logger.info(`${contract.symbol} Balance: ${balance}`)
-
+    if (!skipLogs) {
+      logger.info(`${contract.name} Balance: ${balance.toString(10)} (${Utils.amountFromGweiToCoin(balance, contract.decimals).toString(10)} ${contract.symbol})`)
+    }
     return balance
   }
 
@@ -108,40 +109,52 @@ class Exchange {
     return pairAddress
   }
 
-  async getRate(contract: Contract, pairAddress?: string): Promise<number> {
+  async getRate(contract: Contract, pairAddress?: string, skipLogs: boolean = false): Promise<BigNumber> {
     if (pairAddress === undefined) pairAddress = await this.getPair(contract)
 
-    const tokenBalance = await this.tokenBalance(contract, pairAddress)
+    const tokenBalance = await this.tokenBalance(contract, pairAddress, skipLogs)
 
-    if (tokenBalance === 0) {
+    if (tokenBalance.isZero()) {
       throw new Error(`Contract ${contract.symbol} does not have liquidity`)
     }
 
-    const wbnbBalance = await this.tokenBalance(this._wbnbContract, pairAddress)
+    const wbnbBalance = await this.tokenBalance(this._wbnbContract, pairAddress, skipLogs)
 
-    if (wbnbBalance === 0) {
+    if (wbnbBalance.isZero()) {
       throw new Error(`Contract ${contract.symbol} does not have liquidity`)
     }
 
-    const rate = wbnbBalance / tokenBalance
-    logger.info(`Rate: ${rate}`)
-    logger.info(`${contract.symbol} = $${rate * this.bnb_price}`)
+    const rate = wbnbBalance.div(tokenBalance)
+
+    if (!skipLogs) {
+      logger.info(`Rate: ${rate.toString(10)}`)
+      const price = this.getPrice(rate)
+      logger.info(`${contract.symbol} = $${price.toString(10)}`)
+    }
 
     return rate
   }
 
-  async buy(contract: Contract, amount: number, rate: number, slippage: number, maxPrice: number): Promise<TransactionReceipt> {
-    if (rate * this.bnb_price > maxPrice) {
-      throw new Error(`Max Price exceeded: $${(rate * this.bnb_price)} > $${maxPrice}`)
+  getPrice(rate: BigNumber): BigNumber {
+    return rate.multipliedBy(this.bnb_price)
+  }
+
+  async buy(contract: Contract, amountInGwei: BigNumber, rate: BigNumber, slippage: number, maxPrice: number): Promise<TransactionReceipt> {
+    if (rate.multipliedBy(this.bnb_price).toNumber() > maxPrice) {
+      throw new Error(`Max Price exceeded: $${rate.multipliedBy(this.bnb_price).toString(10)} > $${maxPrice}`)
     }
 
-    const originalAmount = amount
-    amount = amount * Math.pow(10, this._wbnbContract.decimals)
+    const amountInCoin = Utils.amountFromGweiToCoin(amountInGwei, 18)
+    const amountOut = amountInGwei.div(rate).decimalPlaces(0)
+    const amountOutMin = amountOut.multipliedBy(1 / ( 1 + ( slippage / 100 ) )).decimalPlaces(0)
+    const amountOutInCoin = Utils.amountFromGweiToCoin(amountOut, contract.decimals)
+    const amountOutMinInCoin = Utils.amountFromGweiToCoin(amountOutMin, contract.decimals)
 
-    const amountOut = originalAmount / rate
-    const amountOutMin = ( amountOut * Math.pow(10, contract.decimals) ) * ( 1 / ( 1 + ( slippage / 100 ) ) )
-
-    logger.info(`Spending ${originalAmount} (${amount}) BNB to buy ${amountOut} ${contract.symbol} (min: ${amountOutMin}) (slippage: ${slippage}%)`)
+    logger.info(`Buy Details:`)
+    logger.info(`BNB: ${amountInGwei.toString(10)} (${amountInCoin.toString(10)} BNB)`)
+    logger.info(`${contract.name}: ${amountOut.toString(10)} (${amountOutInCoin.toString(10)} ${contract.symbol})`)
+    logger.info(`Minimum ${amountOutMin} (${amountOutMinInCoin} ${contract.symbol})`)
+    logger.info(`Slippage: ${slippage}%`)
 
     const data = await this._pancakeRouterContract.swapExactETHForTokens(
       amountOutMin,
@@ -157,7 +170,39 @@ class Exchange {
       // TODO correct set gas limit (based on current estimate)
       'gasLimit': Web3Builder.instance.web3.utils.toHex(500000),
       'to': this.pancakeRouterAddress,
-      'value': Web3Builder.instance.web3.utils.toHex(amount),
+      'value': Web3Builder.instance.web3.utils.toHex(amountInGwei.toString(10)),
+      'data': data.encodeABI(),
+      'nonce': Web3Builder.instance.web3.utils.toHex(count)
+    }
+
+    logger.info(rawTransaction)
+
+    const transaction = new Tx(rawTransaction, { 'common': Web3Builder.instance.bscFork })
+    transaction.sign(this.privateKey)
+
+    const result = await Web3Builder.instance.web3.eth.sendSignedTransaction(
+      '0x' + transaction.serialize().toString('hex')
+    )
+    logger.info(`Transaction`)
+    logger.info(result)
+
+    return result
+  }
+
+  async approve(contract: Contract, amountInGwei: BigNumber) {
+    logger.info(`Approving ${contract.symbol} to spend ${amountInGwei} (${Utils.amountFromGweiToCoin(amountInGwei, 18).toString(10)} BNB)`)
+
+    const data = await contract.approve(this.pancakeRouterAddress, amountInGwei)
+    const count = await this.transactionCount()
+
+    const rawTransaction = {
+      'from': this.address,
+      // TODO correct set gas price (in GWEI)
+      'gasPrice': Web3Builder.instance.web3.utils.toHex(5000000000),
+      // TODO correct set gas limit (based on current estimate)
+      'gasLimit': Web3Builder.instance.web3.utils.toHex(210000),
+      'to': contract.address,
+      'value': '0x0',
       'data': data.encodeABI(),
       'nonce': Web3Builder.instance.web3.utils.toHex(count)
     }

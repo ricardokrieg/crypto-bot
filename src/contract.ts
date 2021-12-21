@@ -3,9 +3,11 @@ import { AbiItem } from 'web3-utils'
 import createLogger from 'logging'
 import * as util from 'util'
 import { pick } from 'lodash'
+import BigNumber from 'bignumber.js'
 
 import Web3Builder from './web3_builder'
-import BscScanApi from "./bsc_scan_api";
+import BscScanApi from './bsc_scan_api'
+import Utils from './utils'
 
 const logger = createLogger('contract')
 
@@ -53,11 +55,17 @@ class Contract {
     return this._symbol
   }
 
-  async balance(address: string): Promise<number> {
+  get name() {
+    return this._name
+  }
+
+  async balance(address: string): Promise<BigNumber> {
     if (this._contract === null) await this.fetchContract()
 
     // @ts-ignore
-    return this._contract.methods.balanceOf(address).call()
+    const balanceStr = await this._contract.methods.balanceOf(address).call()
+
+    return new BigNumber(balanceStr)
   }
 
   async getPair(address1: string, address2: string): Promise<string> {
@@ -67,16 +75,27 @@ class Contract {
     return this._contract.methods.getPair(address1, address2).call()
   }
 
-  async swapExactETHForTokens(minAmount: number, addresses: string[], fromAddress: string): Promise<any> {
+  async swapExactETHForTokens(minAmount: BigNumber, addresses: string[], fromAddress: string): Promise<any> {
     if (this._contract === null) await this.fetchContract()
 
     // @ts-ignore
     return this._contract.methods.swapExactETHForTokens(
-      Web3Builder.instance.web3.utils.toHex(minAmount),
+      Web3Builder.instance.web3.utils.toHex(minAmount.toString(10)),
       addresses,
       fromAddress,
       Web3Builder.instance.web3.utils.toHex(Math.round(Date.now() / 1000) + 60 * 20),
     )
+  }
+
+  async approve(address: string, amountInGwei: BigNumber): Promise<any> {
+    const coinAmount = Utils.amountFromGweiToCoin(amountInGwei, 18)
+
+    if (this._contract === null) await this.fetchContract()
+
+    logger.info(`[${this._symbol}] Approving ${amountInGwei.toString(10)} (${coinAmount.toString(10)} BNB) to ${address}`)
+
+    // @ts-ignore
+    return this._contract.methods.approve(address, amountInGwei.toString(10));
   }
 
   async fetchInfo(): Promise<void> {
