@@ -30,6 +30,7 @@ class Config {
       'STOP_LOSS',
       'AMOUNT_IN_BNB',
       'INQUIRER',
+      'GAS_PRICE',
     ]
 
     this.envVars = {}
@@ -131,6 +132,10 @@ class Config {
 
   amountInBNB() {
     return this.get('AMOUNT_IN_BNB')
+  }
+
+  gasPrice() {
+    return this.get('GAS_PRICE')
   }
 }
 

@@ -89,10 +89,10 @@ import BigNumber from "bignumber.js";
   }
 
   const amountInCoin = new BigNumber(Config.instance.amountInBNB())
-  const amountInGwei = Utils.amountFromCoinToGwei(amountInCoin, 18)
+  const amountInWei = Utils.amountFromCoinToWei(amountInCoin, 18)
   const transaction = await exchange.buy(
     contract,
-    amountInGwei,
+    amountInWei,
     rate,
     parseInt(Config.instance.slippage()),
     parseFloat(Config.instance.maxPrice())
@@ -117,7 +117,7 @@ import BigNumber from "bignumber.js";
     process.exit(1)
   }
 
-  const effectiveRate = amountInGwei.div(amountOut)
+  const effectiveRate = amountInWei.div(amountOut)
 
   // TODO check if has allowance before approving
   await exchange.approve(contract, amountOut)
@@ -132,7 +132,7 @@ import BigNumber from "bignumber.js";
       lastBlockNumber = blockNumber
 
       rate = await exchange.getRate(contract, pairAddress, true)
-      logger.info(`Amount Out: ${amountOut.toString(10)} (${Utils.amountFromGweiToCoin(amountOut, contract.decimals)} ${contract.symbol})`)
+      logger.info(`Amount Out: ${amountOut.toString(10)} (${Utils.amountFromWeiToCoin(amountOut, contract.decimals)} ${contract.symbol})`)
       logger.info(`Rate: ${rate.toString(10)}`)
       logger.info(`Effective Rate: ${effectiveRate.toString(10)}`)
 
@@ -143,7 +143,7 @@ import BigNumber from "bignumber.js";
       logger.info(`Current Price: ${price.toString(10)}`)
 
       const diff = price.minus(buyPrice)
-      const pl = diff.multipliedBy(Utils.amountFromGweiToCoin(amountOut, contract.decimals))
+      const pl = diff.multipliedBy(Utils.amountFromWeiToCoin(amountOut, contract.decimals))
 
       const percentage = rate.div(effectiveRate).minus(1).multipliedBy(100)
 

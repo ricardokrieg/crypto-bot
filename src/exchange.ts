@@ -9,7 +9,7 @@ import BigNumber from 'bignumber.js'
 import Web3Builder from './web3_builder'
 import Contract from './contract'
 import Utils from './utils'
-
+import Config from './config'
 const logger = createLogger('exchange')
 
 export interface IExchangeConfig {
@@ -81,7 +81,7 @@ class Exchange {
   async bnbBalance(): Promise<BigNumber> {
     const balance = new BigNumber(await Web3Builder.instance.web3.eth.getBalance(this.address))
 
-    logger.info(`BNB Balance: ${balance} (${Utils.amountFromGweiToCoin(balance, 18).toString(10)} BNB)`)
+    logger.info(`BNB Balance: ${balance} (${Utils.amountFromWeiToCoin(balance, 18).toString(10)} BNB)`)
 
     return balance
   }
@@ -90,7 +90,7 @@ class Exchange {
     const balance = await contract.balance(address || this.address)
 
     if (!skipLogs) {
-      logger.info(`${contract.name} Balance: ${balance.toString(10)} (${Utils.amountFromGweiToCoin(balance, contract.decimals).toString(10)} ${contract.symbol})`)
+      logger.info(`${contract.name} Balance: ${balance.toString(10)} (${Utils.amountFromWeiToCoin(balance, contract.decimals).toString(10)} ${contract.symbol})`)
     }
     return balance
   }
@@ -124,7 +124,7 @@ class Exchange {
       throw new Error(`Contract ${contract.symbol} does not have liquidity`)
     }
 
-    const rate = Utils.amountFromGweiToCoin(wbnbBalance, 18).div(Utils.amountFromGweiToCoin(tokenBalance, contract.decimals))
+    const rate = Utils.amountFromWeiToCoin(wbnbBalance, 18).div(Utils.amountFromWeiToCoin(tokenBalance, contract.decimals))
 
     if (!skipLogs) {
       logger.info(`Rate: ${rate.toString(10)}`)
@@ -139,19 +139,19 @@ class Exchange {
     return rate.multipliedBy(this.bnb_price)
   }
 
-  async buy(contract: Contract, amountInGwei: BigNumber, rate: BigNumber, slippage: number, maxPrice: number): Promise<TransactionReceipt> {
+  async buy(contract: Contract, amountInWei: BigNumber, rate: BigNumber, slippage: number, maxPrice: number): Promise<TransactionReceipt> {
     if (rate.multipliedBy(this.bnb_price).toNumber() > maxPrice) {
       throw new Error(`Max Price exceeded: $${rate.multipliedBy(this.bnb_price).toString(10)} > $${maxPrice}`)
     }
 
-    const amountInCoin = Utils.amountFromGweiToCoin(amountInGwei, 18)
-    const amountOut = amountInGwei.div(rate).decimalPlaces(0)
+    const amountInCoin = Utils.amountFromWeiToCoin(amountInWei, 18)
+    const amountOut = amountInWei.div(rate).decimalPlaces(0)
     const amountOutMin = amountOut.multipliedBy(1 / ( 1 + ( slippage / 100 ) )).decimalPlaces(0)
-    const amountOutInCoin = Utils.amountFromGweiToCoin(amountOut, contract.decimals)
-    const amountOutMinInCoin = Utils.amountFromGweiToCoin(amountOutMin, contract.decimals)
+    const amountOutInCoin = Utils.amountFromWeiToCoin(amountOut, contract.decimals)
+    const amountOutMinInCoin = Utils.amountFromWeiToCoin(amountOutMin, contract.decimals)
 
     logger.info(`Buy Details:`)
-    logger.info(`BNB: ${amountInGwei.toString(10)} (${amountInCoin.toString(10)} BNB)`)
+    logger.info(`BNB: ${amountInWei.toString(10)} (${amountInCoin.toString(10)} BNB)`)
     logger.info(`${contract.name}: ${amountOut.toString(10)} (${amountOutInCoin.toString(10)} ${contract.symbol})`)
     logger.info(`Minimum ${amountOutMin} (${amountOutMinInCoin} ${contract.symbol})`)
     logger.info(`Slippage: ${slippage}%`)
@@ -162,15 +162,17 @@ class Exchange {
       this.address
     )
 
+    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice())).multipliedBy(1.4)
+
     const count = await this.transactionCount()
     const rawTransaction = {
       'from': this.address,
-      // TODO correct set gas price (in GWEI)
-      'gasPrice': Web3Builder.instance.web3.utils.toHex(5000000000),
-      // TODO correct set gas limit (based on current estimate)
+      // TODO get correct gwei estimate
+      'gasPrice': Web3Builder.instance.web3.utils.toHex(gasPriceInWei.toString(10)),
+      // TODO get correct gasLimit estimate
       'gasLimit': Web3Builder.instance.web3.utils.toHex(500000),
       'to': this.pancakeRouterAddress,
-      'value': Web3Builder.instance.web3.utils.toHex(amountInGwei.toString(10)),
+      'value': Web3Builder.instance.web3.utils.toHex(amountInWei.toString(10)),
       'data': data.encodeABI(),
       'nonce': Web3Builder.instance.web3.utils.toHex(count)
     }
@@ -189,28 +191,30 @@ class Exchange {
     return result
   }
 
-  async sell(contract: Contract, amountInGwei: BigNumber): Promise<TransactionReceipt> {
-    const amountInCoin = Utils.amountFromGweiToCoin(amountInGwei, contract.decimals)
+  // TODO add slippage here too
+  async sell(contract: Contract, amountInWei: BigNumber): Promise<TransactionReceipt> {
+    const amountInCoin = Utils.amountFromWeiToCoin(amountInWei, contract.decimals)
     const amountOutMin = new BigNumber(1)
-    const amountOutMinInCoin = Utils.amountFromGweiToCoin(amountOutMin, 18)
+    const amountOutMinInCoin = Utils.amountFromWeiToCoin(amountOutMin, 18)
 
     logger.info(`Sell Details:`)
-    logger.info(`${contract.name}: ${amountInGwei.toString(10)} (${amountInCoin.toString(10)} ${contract.symbol})`)
+    logger.info(`${contract.name}: ${amountInWei.toString(10)} (${amountInCoin.toString(10)} ${contract.symbol})`)
     logger.info(`Minimum ${amountOutMin.toString(10)} (${amountOutMinInCoin.toString(10)} BNB)`)
 
     const data = await this._pancakeRouterContract.swapExactTokensForETH(
-      amountInGwei,
+      amountInWei,
       amountOutMin,
       [ contract.address, this.wbnbAddress ],
       this.address
     )
 
+    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice())).multipliedBy(1.4)
+
     const count = await this.transactionCount()
     const rawTransaction = {
       'from': this.address,
-      // TODO correct set gas price (in GWEI)
-      'gasPrice': Web3Builder.instance.web3.utils.toHex(5000000000),
-      // TODO correct set gas limit (based on current estimate)
+      'gasPrice': Web3Builder.instance.web3.utils.toHex(gasPriceInWei.toString(10)),
+      // TODO get correct gasLimit estimate
       'gasLimit': Web3Builder.instance.web3.utils.toHex(500000),
       'to': this.pancakeRouterAddress,
       'value': Web3Builder.instance.web3.utils.toHex(0),
@@ -232,17 +236,19 @@ class Exchange {
     return result
   }
 
-  async approve(contract: Contract, amountInGwei: BigNumber) {
-    logger.info(`Approving ${contract.symbol} to spend ${amountInGwei} (${Utils.amountFromGweiToCoin(amountInGwei, 18).toString(10)} BNB)`)
+  async approve(contract: Contract, amountInWei: BigNumber) {
+    logger.info(`Approving ${contract.symbol} to spend ${amountInWei} (${Utils.amountFromWeiToCoin(amountInWei, 18).toString(10)} BNB)`)
 
-    const data = await contract.approve(this.pancakeRouterAddress, amountInGwei)
+    const data = await contract.approve(this.pancakeRouterAddress, amountInWei)
     const count = await this.transactionCount()
+
+    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice()))
 
     const rawTransaction = {
       'from': this.address,
-      // TODO correct set gas price (in GWEI)
-      'gasPrice': Web3Builder.instance.web3.utils.toHex(5000000000),
-      // TODO correct set gas limit (based on current estimate)
+      // TODO get correct gwei estimate
+      'gasPrice': Web3Builder.instance.web3.utils.toHex(gasPriceInWei.toString(10)),
+      // TODO get correct gasLimit estimate
       'gasLimit': Web3Builder.instance.web3.utils.toHex(210000),
       'to': contract.address,
       'value': '0x0',

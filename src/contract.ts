@@ -87,28 +87,28 @@ class Contract {
     )
   }
 
-  async swapExactTokensForETH(amountToSellInGwei: BigNumber, minAmountInGwei: BigNumber, addresses: string[], fromAddress: string): Promise<any> {
+  async swapExactTokensForETH(amountToSellInWei: BigNumber, minAmountInWei: BigNumber, addresses: string[], fromAddress: string): Promise<any> {
     if (this._contract === null) await this.fetchContract()
 
     // @ts-ignore
     return this._contract.methods.swapExactTokensForETHSupportingFeeOnTransferTokens(
-      Web3Builder.instance.web3.utils.toHex(amountToSellInGwei.toString(10)),
-      Web3Builder.instance.web3.utils.toHex(minAmountInGwei.toString(10)),
+      Web3Builder.instance.web3.utils.toHex(amountToSellInWei.toString(10)),
+      Web3Builder.instance.web3.utils.toHex(minAmountInWei.toString(10)),
       addresses,
       fromAddress,
       Web3Builder.instance.web3.utils.toHex(Math.round(Date.now() / 1000) + 60 * 20),
     )
   }
 
-  async approve(address: string, amountInGwei: BigNumber): Promise<any> {
-    const coinAmount = Utils.amountFromGweiToCoin(amountInGwei, 18)
+  async approve(address: string, amountInWei: BigNumber): Promise<any> {
+    const coinAmount = Utils.amountFromWeiToCoin(amountInWei, 18)
 
     if (this._contract === null) await this.fetchContract()
 
-    logger.info(`[${this._symbol}] Approving ${amountInGwei.toString(10)} (${coinAmount.toString(10)} BNB) to ${address}`)
+    logger.info(`[${this._symbol}] Approving ${amountInWei.toString(10)} (${coinAmount.toString(10)} BNB) to ${address}`)
 
     // @ts-ignore
-    return this._contract.methods.approve(address, amountInGwei.toString(10));
+    return this._contract.methods.approve(address, amountInWei.toString(10));
   }
 
   async fetchInfo(): Promise<void> {

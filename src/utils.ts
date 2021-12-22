@@ -16,12 +16,20 @@ class Utils {
     throw new Error('Could not fetch amountOut')
   }
 
-  static amountFromGweiToCoin(amount: BigNumber, decimals: number): BigNumber {
+  static amountFromWeiToCoin(amount: BigNumber, decimals: number): BigNumber {
     return amount.div(new BigNumber(10).pow(decimals))
   }
 
-  static amountFromCoinToGwei(amount: BigNumber, decimals: number): BigNumber {
+  static amountFromCoinToWei(amount: BigNumber, decimals: number): BigNumber {
     return amount.multipliedBy(new BigNumber(10).pow(decimals))
+  }
+
+  static amountFromGweiToCoin(amount: BigNumber, decimals: number): BigNumber {
+    return amount.div(new BigNumber(10).pow(decimals / 2))
+  }
+
+  static amountFromGweiToWei(amount: BigNumber): BigNumber {
+    return amount.multipliedBy(new BigNumber(10).pow(9))
   }
 }
 
