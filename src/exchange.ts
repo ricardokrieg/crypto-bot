@@ -20,6 +20,11 @@ export interface IExchangeConfig {
   wbnbAddress: string,
 }
 
+export interface ITransactionResponse {
+  transactionReceipt: TransactionReceipt
+  nonce: number
+}
+
 class Exchange {
   readonly address: string
   readonly privateKey: Buffer
@@ -139,7 +144,8 @@ class Exchange {
     return rate.multipliedBy(this.bnb_price)
   }
 
-  async buy(contract: Contract, amountInWei: BigNumber, rate: BigNumber, slippage: number, maxPrice: number): Promise<TransactionReceipt> {
+  // TODO, set gasLimit as 2x gas returned by Honeypot
+  async buy(contract: Contract, amountInWei: BigNumber, rate: BigNumber, slippage: number, maxPrice: number, gasLimit: number): Promise<ITransactionResponse> {
     if (rate.multipliedBy(this.bnb_price).toNumber() > maxPrice) {
       throw new Error(`Max Price exceeded: $${rate.multipliedBy(this.bnb_price).toString(10)} > $${maxPrice}`)
     }
@@ -149,12 +155,15 @@ class Exchange {
     const amountOutMin = amountOut.multipliedBy(1 / ( 1 + ( slippage / 100 ) )).decimalPlaces(0)
     const amountOutInCoin = Utils.amountFromWeiToCoin(amountOut, contract.decimals)
     const amountOutMinInCoin = Utils.amountFromWeiToCoin(amountOutMin, contract.decimals)
+    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice())).multipliedBy(1.4)
 
     logger.info(`Buy Details:`)
     logger.info(`BNB: ${amountInWei.toString(10)} (${amountInCoin.toString(10)} BNB)`)
     logger.info(`${contract.name}: ${amountOut.toString(10)} (${amountOutInCoin.toString(10)} ${contract.symbol})`)
-    logger.info(`Minimum ${amountOutMin} (${amountOutMinInCoin} ${contract.symbol})`)
+    logger.info(`Minimum ${amountOutMin.toString(10)} (${amountOutMinInCoin} ${contract.symbol})`)
     logger.info(`Slippage: ${slippage}%`)
+    logger.info(`Gas Price: ${Utils.amountFromWeiToGwei(gasPriceInWei).toString(10)} GWEI`)
+    logger.info(`Gas Limit: ${gasLimit}`)
 
     const data = await this._pancakeRouterContract.swapExactETHForTokens(
       amountOutMin,
@@ -162,15 +171,11 @@ class Exchange {
       this.address
     )
 
-    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice())).multipliedBy(1.4)
-
     const count = await this.transactionCount()
     const rawTransaction = {
       'from': this.address,
-      // TODO get correct gwei estimate
       'gasPrice': Web3Builder.instance.web3.utils.toHex(gasPriceInWei.toString(10)),
-      // TODO get correct gasLimit estimate
-      'gasLimit': Web3Builder.instance.web3.utils.toHex(500000),
+      'gasLimit': Web3Builder.instance.web3.utils.toHex(gasLimit),
       'to': this.pancakeRouterAddress,
       'value': Web3Builder.instance.web3.utils.toHex(amountInWei.toString(10)),
       'data': data.encodeABI(),
@@ -188,18 +193,27 @@ class Exchange {
     logger.info(`Transaction`)
     logger.info(result)
 
-    return result
+    const response: ITransactionResponse = {
+      transactionReceipt: result,
+      nonce: count
+    }
+
+    return response
   }
 
   // TODO add slippage here too
-  async sell(contract: Contract, amountInWei: BigNumber): Promise<TransactionReceipt> {
+  // TODO, set gasLimit as 2x gas returned by Honeypot
+  async sell(contract: Contract, amountInWei: BigNumber, gasLimit: number): Promise<TransactionReceipt> {
     const amountInCoin = Utils.amountFromWeiToCoin(amountInWei, contract.decimals)
     const amountOutMin = new BigNumber(1)
     const amountOutMinInCoin = Utils.amountFromWeiToCoin(amountOutMin, 18)
+    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice())).multipliedBy(1.4)
 
     logger.info(`Sell Details:`)
     logger.info(`${contract.name}: ${amountInWei.toString(10)} (${amountInCoin.toString(10)} ${contract.symbol})`)
     logger.info(`Minimum ${amountOutMin.toString(10)} (${amountOutMinInCoin.toString(10)} BNB)`)
+    logger.info(`Gas Price: ${Utils.amountFromWeiToGwei(gasPriceInWei).toString(10)} GWEI`)
+    logger.info(`Gas Limit: ${gasLimit}`)
 
     const data = await this._pancakeRouterContract.swapExactTokensForETH(
       amountInWei,
@@ -208,14 +222,11 @@ class Exchange {
       this.address
     )
 
-    const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice())).multipliedBy(1.4)
-
     const count = await this.transactionCount()
     const rawTransaction = {
       'from': this.address,
       'gasPrice': Web3Builder.instance.web3.utils.toHex(gasPriceInWei.toString(10)),
-      // TODO get correct gasLimit estimate
-      'gasLimit': Web3Builder.instance.web3.utils.toHex(500000),
+      'gasLimit': Web3Builder.instance.web3.utils.toHex(gasLimit),
       'to': this.pancakeRouterAddress,
       'value': Web3Builder.instance.web3.utils.toHex(0),
       'data': data.encodeABI(),
@@ -236,7 +247,7 @@ class Exchange {
     return result
   }
 
-  async approve(contract: Contract, amountInWei: BigNumber) {
+  async approve(contract: Contract, amountInWei: BigNumber, lastNonce: number = 0) {
     logger.info(`Approving ${contract.symbol} to spend ${amountInWei} (${Utils.amountFromWeiToCoin(amountInWei, 18).toString(10)} BNB)`)
 
     const data = await contract.approve(this.pancakeRouterAddress, amountInWei)
@@ -244,16 +255,15 @@ class Exchange {
 
     const gasPriceInWei = Utils.amountFromGweiToWei(new BigNumber(Config.instance.gasPrice()))
 
+    const nonce = count <= lastNonce ? lastNonce + 1 : count
     const rawTransaction = {
       'from': this.address,
-      // TODO get correct gwei estimate
       'gasPrice': Web3Builder.instance.web3.utils.toHex(gasPriceInWei.toString(10)),
-      // TODO get correct gasLimit estimate
       'gasLimit': Web3Builder.instance.web3.utils.toHex(210000),
       'to': contract.address,
       'value': '0x0',
       'data': data.encodeABI(),
-      'nonce': Web3Builder.instance.web3.utils.toHex(count)
+      'nonce': Web3Builder.instance.web3.utils.toHex(nonce)
     }
 
     logger.info(rawTransaction)

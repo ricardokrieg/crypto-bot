@@ -31,6 +31,10 @@ class Utils {
   static amountFromGweiToWei(amount: BigNumber): BigNumber {
     return amount.multipliedBy(new BigNumber(10).pow(9))
   }
+  static amountFromWeiToGwei(amount: BigNumber): BigNumber {
+    return amount.div(new BigNumber(10).pow(9))
+  }
+
 }
 
 export default Utils

@@ -5,6 +5,15 @@ import Config from './config'
 
 const logger = createLogger('honeypot_api')
 
+export interface IHoneypotReport {
+  BuyGas: number
+  BuyTax: number
+  IsHoneypot: false
+  SellGas: number
+  SellTax: number
+  status: boolean
+}
+
 class HoneypotApi {
   private static _instance: HoneypotApi
 
@@ -15,7 +24,7 @@ class HoneypotApi {
     return this._instance || (this._instance = new this())
   }
 
-  async report(address: string): Promise<boolean> {
+  async report(address: string): Promise<IHoneypotReport> {
     const response = await axios.get(
     'https://aywt3wreda.execute-api.eu-west-1.amazonaws.com/default/IsHoneypot', {
       params: {
@@ -25,31 +34,39 @@ class HoneypotApi {
     })
 
     const data = response.data
+    const result: IHoneypotReport = {
+      BuyGas: data['BuyGas'],
+      BuyTax: data['BuyTax'],
+      IsHoneypot: data['IsHoneypot'],
+      SellGas: data['SellGas'],
+      SellTax: data['SellTax'],
+      status: true,
+    }
 
     logger.info(data)
 
     if (data['IsHoneypot']) {
       logger.error(`HoneyPot!`)
-      return false
+      result.status = false
     }
     if (data['BuyTax'] > Config.instance.maxBuyFee()) {
       logger.error(`BuyTax too high: ${data['BuyTax']}`)
-      return false
+      result.status = false
     }
     if (data['SellTax'] > Config.instance.maxSellFee()) {
       logger.error(`SellTax too high: ${data['SellTax']}`)
-      return false
+      result.status = false
     }
-    if (data['BuyGas'] >= 1000000) {
+    if (data['BuyGas'] >= 2000000) {
       logger.error(`BuyGas too high: ${data['BuyGas']}`)
-      return false
+      result.status = false
     }
-    if (data['SellGas'] >= 1000000) {
+    if (data['SellGas'] >= 2000000) {
       logger.error(`SellGas too high: ${data['SellGas']}`)
-      return false
+      result.status = false
     }
 
-    return true
+    return result
   }
 }
 

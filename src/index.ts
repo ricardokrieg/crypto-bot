@@ -4,7 +4,7 @@ import inquirer from 'inquirer'
 import Exchange from '../src/exchange'
 import Config from '../src/config'
 import Contract from '../src/contract'
-import HoneypotApi from './honeypot_api'
+import HoneypotApi, {IHoneypotReport} from './honeypot_api'
 import Web3Builder from './web3_builder'
 import Utils from './utils'
 import BigNumber from "bignumber.js";
@@ -38,6 +38,7 @@ import BigNumber from "bignumber.js";
   let pairAddress = undefined
   let lastBlockNumber = -1
   let rate = new BigNumber(0)
+  let honeypotResult: IHoneypotReport
 
   while (true) {
     const blockNumber = await Web3Builder.instance.web3.eth.getBlockNumber()
@@ -76,8 +77,8 @@ import BigNumber from "bignumber.js";
 
       logger.info(`Checking Fees`)
       try {
-        const result = await HoneypotApi.instance.report(contract.address)
-        if (!result) {
+        honeypotResult = await HoneypotApi.instance.report(contract.address)
+        if (!honeypotResult.status) {
           throw new Error('HoneyPot!')
         }
       } catch (e) {
@@ -90,13 +91,15 @@ import BigNumber from "bignumber.js";
 
   const amountInCoin = new BigNumber(Config.instance.amountInBNB())
   const amountInWei = Utils.amountFromCoinToWei(amountInCoin, 18)
-  const transaction = await exchange.buy(
+  const transactionResponse = await exchange.buy(
     contract,
     amountInWei,
     rate,
     parseInt(Config.instance.slippage()),
-    parseFloat(Config.instance.maxPrice())
+    parseFloat(Config.instance.maxPrice()),
+    honeypotResult.BuyGas * 2
   )
+  const transaction = transactionResponse.transactionReceipt
   logger.info(transaction.transactionHash)
 
   if (!transaction.status) {
@@ -120,7 +123,7 @@ import BigNumber from "bignumber.js";
   const effectiveRate = amountInWei.div(amountOut)
 
   // TODO check if has allowance before approving
-  await exchange.approve(contract, amountOut)
+  await exchange.approve(contract, amountOut, transactionResponse.nonce)
 
   const takeProfit = parseFloat(Config.instance.takeProfit())
   const stopLoss = parseFloat(Config.instance.takeProfit()) * -1
@@ -169,7 +172,8 @@ import BigNumber from "bignumber.js";
       if (exit) {
         const transaction = await exchange.sell(
           contract,
-          amountOut
+          amountOut,
+          honeypotResult.SellGas * 2
         )
         logger.info(transaction.transactionHash)
 
