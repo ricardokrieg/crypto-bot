@@ -29,6 +29,7 @@ class Config {
       'TAKE_PROFIT',
       'STOP_LOSS',
       'AMOUNT_IN_BNB',
+      'INQUIRER',
     ]
 
     this.envVars = {}
@@ -48,8 +49,16 @@ class Config {
     return this.envVars[key] || ''
   }
 
+  set = (key: string, value: string) => {
+    this.envVars[key] = value
+  }
+
   isTestnet = () => {
     return false;
+  }
+
+  useInquirer = () => {
+    return this.get('INQUIRER')
   }
 
   mainnetRpcUrl = () => {
@@ -78,6 +87,10 @@ class Config {
 
   tokenAddress = () => {
     return this.get('TOKEN_ADDRESS')
+  }
+
+  setTokenAddress = (value: string) => {
+    this.set('TOKEN_ADDRESS', value)
   }
 
   pancakeFactoryAddress = () => {

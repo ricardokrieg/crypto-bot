@@ -124,7 +124,7 @@ class Exchange {
       throw new Error(`Contract ${contract.symbol} does not have liquidity`)
     }
 
-    const rate = wbnbBalance.div(tokenBalance)
+    const rate = Utils.amountFromGweiToCoin(wbnbBalance, 18).div(Utils.amountFromGweiToCoin(tokenBalance, contract.decimals))
 
     if (!skipLogs) {
       logger.info(`Rate: ${rate.toString(10)}`)

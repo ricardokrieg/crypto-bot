@@ -1,4 +1,5 @@
 import { default as createLogger } from 'logging'
+import inquirer from 'inquirer'
 
 import Exchange from '../src/exchange'
 import Config from '../src/config'
@@ -22,6 +23,14 @@ import BigNumber from "bignumber.js";
 
   await exchange.fetchBNBPrice()
   await exchange.fetchContracts()
+
+  if (Config.instance.useInquirer()) {
+    const answer = await inquirer.prompt([{ type: 'input', name: 'token_address', message: 'Token Address: ' }])
+
+    // @ts-ignore
+    const tokenAddress = answer['token_address']
+    Config.instance.setTokenAddress(tokenAddress)
+  }
 
   const contract = new Contract(Config.instance.tokenAddress())
   await contract.fetchInfo()
