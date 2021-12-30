@@ -1,14 +1,12 @@
 import {Log} from 'web3-core'
 import {default as createLogger} from 'logging'
 
+import {ILogReceiver} from './LogStore'
+
 const logger = createLogger('LogMonitor')
 
 export interface ILogEmitter {
   subscribe: (onLog: (log: Log) => void) => void
-}
-
-export interface ILogReceiver {
-  onLog: (log: Log) => void
 }
 
 export default class LogMonitor {

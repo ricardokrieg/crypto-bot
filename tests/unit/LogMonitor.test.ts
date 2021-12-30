@@ -1,5 +1,7 @@
-import LogMonitor, {ILogEmitter, ILogReceiver} from '../../../src/LogMonitor/LogMonitor'
 import {Log} from 'web3-core'
+
+import LogMonitor, {ILogEmitter} from '../../src/LogMonitor'
+import {ILogReceiver} from '../../src/LogStore'
 
 class TestLogEmitter implements ILogEmitter {
   private readonly log: Log

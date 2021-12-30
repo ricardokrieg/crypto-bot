@@ -5,6 +5,13 @@ export interface ILogReceiver {
 }
 
 export default class LogStore implements ILogReceiver {
+  readonly logs: Log[]
+
+  constructor() {
+    this.logs = []
+  }
+
   onLog(log: Log) {
+    this.logs.push(log)
   }
 }

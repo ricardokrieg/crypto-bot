@@ -5,10 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "log_monitor": "npx ts-node src/log_monitor.ts",
-    "wss": "npx ts-node utils/web_socket_server.ts",
     "start": "npx ts-node src/index.ts",
-    "sniper": "npx ts-node src/sniper.ts",
     "fishtown": "npx ts-node src/fishtown.ts",
     "playground/web3_builder": "npx ts-node playground/web3_builder.ts",
     "playground/exchange": "npx ts-node playground/exchange.ts",

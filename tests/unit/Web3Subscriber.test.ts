@@ -1,7 +1,7 @@
 import {Log} from 'web3-core'
 import Web3 from 'web3'
 
-import Web3LogSubscriber from '../../../src/LogMonitor/Web3LogSubscriber'
+import Web3LogSubscriber from '../../src/Web3LogSubscriber'
 
 test('Forwards logs from web3', async () => {
   const url = 'wss://example.com'
