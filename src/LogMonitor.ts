@@ -3,6 +3,8 @@ import {default as createLogger} from 'logging'
 
 import {ILogReceiver} from './LogStore'
 
+const FULL_APPROVAL = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+
 const logger = createLogger('LogMonitor')
 
 export interface ILogEmitter {
@@ -29,6 +31,13 @@ export default class LogMonitor {
         logger.warn(`Discarding removed log`)
         return
       }
+
+      if (log.data !== FULL_APPROVAL) {
+        logger.warn(`Discarding non full approval log`)
+        return
+      }
+
+      logger.info(`Forwarding log`)
 
       for (let logReceiver of this.logReceivers) {
         logReceiver.onLog(log)

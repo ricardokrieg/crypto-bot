@@ -28,7 +28,7 @@ test('Forwards logs from logEmitter to logReceiver', async () => {
     address: "",
     blockHash: "",
     blockNumber: 0,
-    data: "",
+    data: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     logIndex: 0,
     topics: [],
     transactionHash: "",
@@ -58,6 +58,29 @@ test('Does not forward a removed log', async () => {
     transactionIndex: 0,
     // @ts-ignore
     removed: true
+  }
+
+  const logEmitter = new TestLogEmitter(log)
+  const logReceiver1 = new TestLogReceiver()
+  const logReceiver2 = new TestLogReceiver()
+
+  const logMonitor = new LogMonitor(logEmitter, [logReceiver1, logReceiver2])
+  await logMonitor.start()
+
+  expect(logReceiver1.log).toBeUndefined()
+  expect(logReceiver2.log).toBeUndefined()
+})
+
+test('Does not forward a log that is not full approval', async () => {
+  const log: Log = {
+    address: "",
+    blockHash: "",
+    blockNumber: 0,
+    data: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    logIndex: 0,
+    topics: [],
+    transactionHash: "",
+    transactionIndex: 0,
   }
 
   const logEmitter = new TestLogEmitter(log)
