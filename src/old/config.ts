@@ -14,6 +14,8 @@ class Config {
     const keys = [
       'MAINNET_RPC_URL',
       'TESTNET_RPC_URL',
+      'MAINNET_WS_URL',
+      'TESTNET_WS_URL',
       'BSC_SCAN_API_KEY',
       'BSC_SCAN_API_URL',
       'WALLET_ADDRESS',
@@ -68,6 +70,14 @@ class Config {
 
   testnetRpcUrl = () => {
     return this.get('MAINNET_RPC_URL')
+  }
+
+  mainnetWsUrl = () => {
+    return this.get('MAINNET_WS_URL')
+  }
+
+  testnetWsUrl = () => {
+    return this.get('MAINNET_WS_URL')
   }
 
   bscScanApiKey = () => {

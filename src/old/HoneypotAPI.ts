@@ -3,7 +3,7 @@ const axios = require('axios').default
 
 import Config from './config'
 
-const logger = createLogger('honeypot_api')
+const logger = createLogger('HoneypotAPI')
 
 export interface IHoneypotReport {
   BuyGas: number
@@ -14,8 +14,8 @@ export interface IHoneypotReport {
   status: boolean
 }
 
-class HoneypotApi {
-  private static _instance: HoneypotApi
+export default class HoneypotAPI {
+  private static _instance: HoneypotAPI
 
   private constructor() {
   }
@@ -69,5 +69,3 @@ class HoneypotApi {
     return result
   }
 }
-
-export default HoneypotApi
