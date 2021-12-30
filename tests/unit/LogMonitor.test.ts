@@ -36,12 +36,14 @@ test('Forwards logs from logEmitter to logReceiver', async () => {
   }
 
   const logEmitter = new TestLogEmitter(log)
-  const logReceiver = new TestLogReceiver()
+  const logReceiver1 = new TestLogReceiver()
+  const logReceiver2 = new TestLogReceiver()
 
-  const logMonitor = new LogMonitor(logEmitter, logReceiver)
+  const logMonitor = new LogMonitor(logEmitter, [logReceiver1, logReceiver2])
   await logMonitor.start()
 
-  expect(logReceiver.log).toEqual(log)
+  expect(logReceiver1.log).toEqual(log)
+  expect(logReceiver2.log).toEqual(log)
 })
 
 test('Does not forward a removed log', async () => {
@@ -59,10 +61,12 @@ test('Does not forward a removed log', async () => {
   }
 
   const logEmitter = new TestLogEmitter(log)
-  const logReceiver = new TestLogReceiver()
+  const logReceiver1 = new TestLogReceiver()
+  const logReceiver2 = new TestLogReceiver()
 
-  const logMonitor = new LogMonitor(logEmitter, logReceiver)
+  const logMonitor = new LogMonitor(logEmitter, [logReceiver1, logReceiver2])
   await logMonitor.start()
 
-  expect(logReceiver.log).toBeUndefined()
+  expect(logReceiver1.log).toBeUndefined()
+  expect(logReceiver2.log).toBeUndefined()
 })

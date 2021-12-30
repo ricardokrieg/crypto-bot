@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest tests/unit",
     "start": "npx ts-node src/index.ts",
     "fishtown": "npx ts-node src/fishtown.ts",
     "playground/web3_builder": "npx ts-node playground/web3_builder.ts",

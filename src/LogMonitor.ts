@@ -11,11 +11,11 @@ export interface ILogEmitter {
 
 export default class LogMonitor {
   private readonly logEmitter: ILogEmitter
-  private readonly logReceiver: ILogReceiver
+  private readonly logReceivers: ILogReceiver[]
 
-  constructor(logEmitter: ILogEmitter, logReceiver: ILogReceiver) {
+  constructor(logEmitter: ILogEmitter, logReceivers: ILogReceiver[]) {
     this.logEmitter  = logEmitter
-    this.logReceiver = logReceiver
+    this.logReceivers = logReceivers
   }
 
   async start() {
@@ -30,7 +30,9 @@ export default class LogMonitor {
         return
       }
 
-      this.logReceiver.onLog(log)
+      for (let logReceiver of this.logReceivers) {
+        logReceiver.onLog(log)
+      }
     })
   }
 }
