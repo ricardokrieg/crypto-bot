@@ -14,3 +14,29 @@ test('Returns how many blocks it has stored', async () => {
 
   expect(logStore.blockCount()).toBe(3)
 })
+
+test('Returns the count of approvals for a specific Contract in a specific Block', async () => {
+  const logStore = new LogStore()
+
+  logStore.onLog(generateLog({
+    address: '0x1',
+    blockNumber: 1000
+  }))
+
+  logStore.onLog(generateLog({
+    address: '0x1',
+    blockNumber: 1000
+  }))
+
+  logStore.onLog(generateLog({
+    address: '0x2',
+    blockNumber: 1000
+  }))
+
+  logStore.onLog(generateLog({
+    address: '0x1',
+    blockNumber: 1001
+  }))
+
+  expect(logStore.contractCount('0x1', 1000)).toBe(2)
+})

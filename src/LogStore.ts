@@ -9,6 +9,7 @@ export interface ILogReceiver {
 
 export interface ILogStore {
   blockCount: () => number
+  contractCount: (address: string, blockNumber: number) => number
 }
 
 export default class LogStore implements ILogReceiver, ILogStore {
@@ -36,5 +37,11 @@ export default class LogStore implements ILogReceiver, ILogStore {
     if (this.firstBlock === 0) return 0
 
     return this.lastBlock - this.firstBlock + 1
+  }
+
+  contractCount(address: string, blockNumber: number): number {
+    if (!this.blocks.hasOwnProperty(blockNumber)) return 0
+
+    return this.blocks[blockNumber].reduce((count, addr) => (addr === address ? count + 1 : count), 0)
   }
 }
