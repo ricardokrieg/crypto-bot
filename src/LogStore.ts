@@ -12,13 +12,19 @@ export interface ILogStore {
 }
 
 export default class LogStore implements ILogReceiver, ILogStore {
-  private readonly blocks: { [blockNumber: number]: string[] }
-
-  constructor() {
-    this.blocks = {}
-  }
+  private firstBlock: number = 0
+  private lastBlock: number = 0
+  private readonly blocks: { [blockNumber: number]: string[] } = {}
 
   onLog(log: Log) {
+    if (this.firstBlock === 0) {
+      this.firstBlock = log.blockNumber
+    }
+
+    if (log.blockNumber > this.lastBlock) {
+      this.lastBlock = log.blockNumber
+    }
+
     const block = this.blocks[log.blockNumber] || []
     this.blocks[log.blockNumber] = [ ...block, log.address ]
 
@@ -27,6 +33,8 @@ export default class LogStore implements ILogReceiver, ILogStore {
   }
 
   blockCount(): number {
-    return Object.keys(this.blocks).length
+    if (this.firstBlock === 0) return 0
+
+    return this.lastBlock - this.firstBlock + 1
   }
 }
