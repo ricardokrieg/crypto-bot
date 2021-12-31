@@ -73,11 +73,9 @@ describe('When the Log Store has 100 or more blocks', () => {
           }
         })
 
-        let count = 0
-        for (let i = 1; i <= 10; i++) {
-          count += logStore.contractCount(contractAddress, blockNumber - i)
-        }
-        assert(count <= 5)
+        assert(logStore.contractCount(contractAddress, blockNumber) === 10)
+        assert(logStore.contractCount(contractAddress, blockNumber - 1) === 5)
+        assert(logStore.contractCount(contractAddress, blockNumber - 2) === 0)
       })
 
       test('Emits the Release to the release listener', async () => {
@@ -106,11 +104,9 @@ describe('When the Log Store has 100 or more blocks', () => {
           }
         })
 
-        let count = 0
-        for (let i = 1; i <= 10; i++) {
-          count += logStore.contractCount(contractAddress, blockNumber - i)
-        }
-        assert(count > 5)
+        assert(logStore.contractCount(contractAddress, blockNumber) === 10)
+        assert(logStore.contractCount(contractAddress, blockNumber - 1) === 6)
+        assert(logStore.contractCount(contractAddress, blockNumber - 2) === 0)
       })
 
       test('Does nothing', async () => {
