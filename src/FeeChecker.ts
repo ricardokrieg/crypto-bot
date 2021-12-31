@@ -1,6 +1,6 @@
 import {default as createLogger} from 'logging'
 
-import {FeeCheckerFailCallback, FeeCheckerSuccessCallback, IFeeChecker} from './ContractChecker'
+import {FeeCheckerCallback, FeeCheckerResult, IFeeChecker} from './ContractChecker'
 import delay from './utils/Delay'
 
 const logger = createLogger('FeeChecker')
@@ -8,7 +8,9 @@ const logger = createLogger('FeeChecker')
 export interface FeeResponse {
   address: string
   buyFee: number
+  buyGas: number
   sellFee: number
+  sellGas: number
   isHoneypot: boolean
   error?: Error
 }
@@ -24,7 +26,7 @@ export default class FeeChecker implements IFeeChecker {
     this.feeProvider = feeProvider
   }
 
-  async check(address: string, onSuccess: FeeCheckerSuccessCallback, onFail: FeeCheckerFailCallback, timeout: number) {
+  async check(address: string, onSuccess: FeeCheckerCallback, onFail: FeeCheckerCallback, timeout: number) {
     const startTime = Date.now()
 
     while (true) {
@@ -32,32 +34,32 @@ export default class FeeChecker implements IFeeChecker {
 
       const response: FeeResponse = await this.feeProvider.check(address)
 
+      const result: FeeCheckerResult = {
+        address,
+        buyFee: response.buyFee,
+        buyGas: response.buyGas,
+        sellFee: response.sellFee,
+        sellGas: response.sellGas,
+      }
+
       if (response.isHoneypot) {
-        onFail(
-          address,
-          response.buyFee,
-          response.sellFee,
-          new Error('Honeypot!'),
-        )
+        onFail({
+          ...result,
+          error: new Error('Honeypot!'),
+        })
         return
       }
 
       if (response.error === undefined) {
-        onSuccess(
-          address,
-          response.buyFee,
-          response.sellFee
-        )
+        onSuccess(result)
         return
       }
 
       if (Date.now() - startTime >= timeout) {
-        onFail(
-          address,
-          0,
-          0,
-          new Error('Timeout'),
-        )
+        onFail({
+          ...result,
+          error: new Error('Timeout'),
+        })
         return
       }
 

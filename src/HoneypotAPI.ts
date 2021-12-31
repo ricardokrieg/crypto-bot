@@ -19,13 +19,17 @@ export default class HoneypotAPI implements IFeeProvider {
     const data = response.data
 
     const buyFee = data['BuyTax']
+    const buyGas = data['BuyGas']
     const sellFee = data['SellTax']
+    const sellGas = data['SellGas']
     const isHoneypot = data['IsHoneypot']
 
     const feeResponse: FeeResponse = {
       address,
       buyFee,
+      buyGas,
       sellFee,
+      sellGas,
       isHoneypot,
     }
 
@@ -35,6 +39,10 @@ export default class HoneypotAPI implements IFeeProvider {
       feeResponse.error = new Error(`Buy Fee is too high: ${buyFee}%`)
     } else if (sellFee > 20) {
       feeResponse.error = new Error(`Sell Fee is too high: ${sellFee}%`)
+    } else if (buyGas > 2000000) {
+      feeResponse.error = new Error(`Buy Gas is too high: ${buyGas}`)
+    } else if (sellGas > 2000000) {
+      feeResponse.error = new Error(`Sell Gas is too high: ${sellGas}`)
     }
 
     return feeResponse

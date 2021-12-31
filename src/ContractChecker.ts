@@ -4,11 +4,18 @@ import {IContractChecker} from './Sniper'
 
 const logger = createLogger('ContractChecker')
 
-export type FeeCheckerSuccessCallback = (address: string, buyFee: number, sellFee: number) => void
-export type FeeCheckerFailCallback = (address: string, buyFee: number, sellFee: number, error: Error) => void
+export type FeeCheckerResult = {
+  address: string
+  buyFee: number
+  buyGas: number
+  sellFee: number
+  sellGas: number
+  error?: Error
+}
+export type FeeCheckerCallback = (response: FeeCheckerResult) => void
 
 export interface IFeeChecker {
-  check: (address: string, onSuccess: FeeCheckerSuccessCallback, onFail: FeeCheckerFailCallback, timeout: number) => void
+  check: (address: string, onSuccess: FeeCheckerCallback, onFail: FeeCheckerCallback, timeout: number) => void
 }
 
 export default class ContractChecker implements IContractChecker {
@@ -24,16 +31,20 @@ export default class ContractChecker implements IContractChecker {
     await feePromise
   }
 
-  onFeeSuccess(address: string, buyFee: number, sellFee: number) {
-    logger.info(`Successful Fee Response for ${address}`)
-    logger.info(`Buy Fee:  ${buyFee}%`)
-    logger.info(`Sell Fee: ${sellFee}%`)
+  onFeeSuccess(result: FeeCheckerResult) {
+    logger.info(`Successful Fee Response for ${result.address}`)
+    logger.info(`Buy Fee:  ${result.buyFee}%`)
+    logger.info(`Buy Gas:  ${result.buyGas}%`)
+    logger.info(`Sell Fee: ${result.sellFee}%`)
+    logger.info(`Sell Gas: ${result.sellGas}%`)
   }
 
-  onFeeFail(address: string, buyFee: number, sellFee: number, error: Error) {
-    logger.warn(`Failed Fee Response for ${address}`)
-    logger.warn(`Buy Fee:  ${buyFee}%`)
-    logger.warn(`Sell Fee: ${sellFee}%`)
-    logger.warn(`Error: ${error.message}%`)
+  onFeeFail(result: FeeCheckerResult) {
+    logger.warn(`Failed Fee Response for ${result.address}`)
+    logger.warn(`Buy Fee:  ${result.buyFee}%`)
+    logger.warn(`Buy Gas:  ${result.buyGas}%`)
+    logger.warn(`Sell Fee: ${result.sellFee}%`)
+    logger.warn(`Sell Gas: ${result.sellGas}%`)
+    logger.warn(`Error: ${result.error?.message}%`)
   }
 }
