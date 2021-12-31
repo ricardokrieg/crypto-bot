@@ -1,20 +1,16 @@
-import {Log} from 'web3-core'
 import {default as createLogger} from 'logging'
 
 const logger = createLogger('Sniper')
 
-export interface ILogEmitter {
-  subscribe: (onLog: (log: Log) => void) => void
+export interface Release {
 }
 
-export default class Sniper {
-  private readonly logEmitter: ILogEmitter
+export interface IReleaseListener {
+  onRelease: (release: Release) => void
+}
 
-  constructor(logEmitter: ILogEmitter) {
-    this.logEmitter  = logEmitter
-  }
-
-  async start() {
-    logger.info('Start')
+export default class Sniper implements IReleaseListener {
+  onRelease(release: Release): void {
+    logger.info(release)
   }
 }
