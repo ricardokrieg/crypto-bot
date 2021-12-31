@@ -17,7 +17,7 @@ import Web3LogSubscriber from './Web3LogSubscriber'
   const web3LogSubscriber = new Web3LogSubscriber(web3)
 
   const logStore = new LogStore()
-  const releaseDetector = new ReleaseDetector(sniper)
+  const releaseDetector = new ReleaseDetector(logStore, sniper)
 
   const logMonitor = new LogMonitor(web3LogSubscriber, [logStore, releaseDetector])
   await logMonitor.start()
