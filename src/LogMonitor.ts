@@ -33,8 +33,6 @@ export default class LogMonitor {
         return
       }
 
-      logger.info(`Forwarding log`)
-
       for (let logReceiver of this.logReceivers) {
         logReceiver.onLog(log)
       }

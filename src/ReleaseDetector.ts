@@ -16,8 +16,6 @@ export default class ReleaseDetector implements ILogReceiver {
   }
 
   onLog(log: Log) {
-    logger.info(log)
-
     if (this.logStore.blockCount() < 100) return
     if (this.logStore.contractCount(log.address, log.blockNumber) < 10) return
 

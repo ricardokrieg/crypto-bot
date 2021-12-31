@@ -29,7 +29,6 @@ export default class LogStore implements ILogReceiver, ILogStore {
     const block = this.blocks[log.blockNumber] || []
     this.blocks[log.blockNumber] = [ ...block, log.address ]
 
-    logger.info(this.blocks)
     logger.info(`Block Count: ${this.blockCount()}`)
   }
 
