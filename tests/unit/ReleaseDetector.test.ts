@@ -1,9 +1,9 @@
-import {Log} from 'web3-core'
 import assert from 'assert'
 
 import ReleaseDetector from '../../src/ReleaseDetector'
 import {ILogStore} from '../../src/LogStore'
 import {IReleaseListener, Release} from '../../src/Sniper'
+import {generateLog} from '../support/Log'
 
 class TestReleaseListener implements IReleaseListener {
   public release?: Release
@@ -37,16 +37,7 @@ describe('When the Log Store has less than 100 blocks', () => {
 
     const releaseDetector = new ReleaseDetector(logStore, releaseListener)
 
-    const log: Log = {
-      address: "",
-      blockHash: "",
-      blockNumber: 0,
-      data: "",
-      logIndex: 0,
-      topics: [],
-      transactionHash: "",
-      transactionIndex: 0
-    }
+    const log = generateLog()
 
     releaseDetector.onLog(log)
 
@@ -61,24 +52,21 @@ describe('When the Log Store has 100 blocks or more', () => {
     assert(logStore.blockCount() >= 100)
   })
 
-  test('Emits the Release to the release listener', async () => {
-    const releaseListener = new TestReleaseListener()
+  describe('When the Contract has 10 or more approvals in the current block', () => {
+    describe('When the Contract has 5 or less approvals in the last 10 blocks', () => {
+      test('Emits the Release to the release listener', async () => {
+        const releaseListener = new TestReleaseListener()
 
-    const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+        const releaseDetector = new ReleaseDetector(logStore, releaseListener)
 
-    const log: Log = {
-      address: "0x0",
-      blockHash: "",
-      blockNumber: 0,
-      data: "",
-      logIndex: 0,
-      topics: [],
-      transactionHash: "",
-      transactionIndex: 0
-    }
+        const log = generateLog({
+          address: '0x0'
+        })
 
-    releaseDetector.onLog(log)
+        releaseDetector.onLog(log)
 
-    expect(releaseListener.release).toEqual({ address: "0x0" })
+        expect(releaseListener.release).toEqual({ address: "0x0" })
+      })
+    })
   })
 })

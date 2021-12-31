@@ -2,6 +2,7 @@ import {Log} from 'web3-core'
 
 import LogMonitor, {ILogEmitter} from '../../src/LogMonitor'
 import {ILogReceiver} from '../../src/LogStore'
+import {generateLog} from '../support/Log'
 
 class TestLogEmitter implements ILogEmitter {
   private readonly log: Log
@@ -24,16 +25,9 @@ class TestLogReceiver implements ILogReceiver {
 }
 
 test('Forwards logs from logEmitter to logReceiver', async () => {
-  const log: Log = {
-    address: "",
-    blockHash: "",
-    blockNumber: 0,
-    data: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    logIndex: 0,
-    topics: [],
-    transactionHash: "",
-    transactionIndex: 0
-  }
+  const log: Log = generateLog({
+    data: '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+  })
 
   const logEmitter = new TestLogEmitter(log)
   const logReceiver1 = new TestLogReceiver()
@@ -47,18 +41,9 @@ test('Forwards logs from logEmitter to logReceiver', async () => {
 })
 
 test('Does not forward a removed log', async () => {
-  const log: Log = {
-    address: "",
-    blockHash: "",
-    blockNumber: 0,
-    data: "",
-    logIndex: 0,
-    topics: [],
-    transactionHash: "",
-    transactionIndex: 0,
-    // @ts-ignore
+  const log: Log = generateLog({
     removed: true
-  }
+  })
 
   const logEmitter = new TestLogEmitter(log)
   const logReceiver1 = new TestLogReceiver()
@@ -72,16 +57,9 @@ test('Does not forward a removed log', async () => {
 })
 
 test('Does not forward a log that is not full approval', async () => {
-  const log: Log = {
-    address: "",
-    blockHash: "",
-    blockNumber: 0,
-    data: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    logIndex: 0,
-    topics: [],
-    transactionHash: "",
-    transactionIndex: 0,
-  }
+  const log = generateLog({
+    data: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+  })
 
   const logEmitter = new TestLogEmitter(log)
   const logReceiver1 = new TestLogReceiver()

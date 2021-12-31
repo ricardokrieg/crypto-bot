@@ -1,21 +1,13 @@
-import {Log} from 'web3-core'
-
 import LogStore from '../../src/LogStore'
+import {generateLog} from '../support/Log'
 
 test('Returns how many blocks it has stored', async () => {
   const logStore = new LogStore()
 
   for (let i = 1; i <= 3; i++) {
-    const log: Log = {
-      address: "",
-      blockHash: "",
-      blockNumber: 1000 + i,
-      data: "",
-      logIndex: 0,
-      topics: [],
-      transactionHash: "",
-      transactionIndex: 0
-    }
+    const log = generateLog({
+      blockNumber: 1000 + i
+    })
 
     logStore.onLog(log)
   }
