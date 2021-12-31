@@ -24,16 +24,12 @@ export default class LogMonitor {
     logger.info('Start')
 
     this.logEmitter.subscribe((log: Log) => {
-      logger.info('Received Log')
-
       // @ts-ignore
       if (log.removed) {
-        logger.warn(`Discarding removed log`)
         return
       }
 
       if (log.data !== FULL_APPROVAL) {
-        logger.warn(`Discarding non full approval log`)
         return
       }
 
