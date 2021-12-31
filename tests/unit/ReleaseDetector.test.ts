@@ -14,30 +14,38 @@ class TestReleaseListener implements IReleaseListener {
 }
 
 class TestLogStore implements ILogStore {
-  private readonly blocks: number
-
-  constructor(blocks: number) {
-    this.blocks = blocks
+  blockCount(): number {
+    return 0
   }
 
-  blockCount(): number {
-    return this.blocks
+  contractCount(_address: string, _blockNumber: number): number {
+    return 0
   }
 }
 
-describe('When the Log Store has less than 100 blocks', () => {
-  let logStore = new TestLogStore(99)
+const logStore = new TestLogStore()
+const releaseListener = new TestReleaseListener()
+const contractAddress = '0x1'
+const blockNumber = 1000
 
+afterEach(() => {
+  releaseListener.release = undefined
+})
+
+describe('When the Log Store has less than 100 blocks', () => {
   beforeEach(() => {
+    logStore.blockCount = jest.fn(() => 99)
+
     assert(logStore.blockCount() < 100)
   })
 
   test('Does nothing', async () => {
-    const releaseListener = new TestReleaseListener()
-
     const releaseDetector = new ReleaseDetector(logStore, releaseListener)
 
-    const log = generateLog()
+    const log = generateLog({
+      address: contractAddress,
+      blockNumber
+    })
 
     releaseDetector.onLog(log)
 
@@ -45,28 +53,105 @@ describe('When the Log Store has less than 100 blocks', () => {
   })
 })
 
-describe('When the Log Store has 100 blocks or more', () => {
-  let logStore = new TestLogStore(100)
-
+describe('When the Log Store has 100 or more blocks', () => {
   beforeEach(() => {
+    logStore.blockCount = jest.fn(() => 100)
+
     assert(logStore.blockCount() >= 100)
   })
 
   describe('When the Contract has 10 or more approvals in the current block', () => {
     describe('When the Contract has 5 or less approvals in the last 10 blocks', () => {
-      test('Emits the Release to the release listener', async () => {
-        const releaseListener = new TestReleaseListener()
+      beforeEach(() => {
+        logStore.contractCount = jest.fn((addr, blockN) => {
+          if (addr === contractAddress && blockN === blockNumber) {
+            return 10
+          } else if (addr === contractAddress && blockN === (blockNumber - 1)) {
+            return 5
+          } else {
+            return 0
+          }
+        })
 
+        let count = 0
+        for (let i = 1; i <= 10; i++) {
+          count += logStore.contractCount(contractAddress, blockNumber - i)
+        }
+        assert(count <= 5)
+      })
+
+      test('Emits the Release to the release listener', async () => {
         const releaseDetector = new ReleaseDetector(logStore, releaseListener)
 
         const log = generateLog({
-          address: '0x0'
+          address: contractAddress,
+          blockNumber
         })
 
         releaseDetector.onLog(log)
 
-        expect(releaseListener.release).toEqual({ address: "0x0" })
+        expect(releaseListener.release).toEqual({ address: contractAddress })
       })
+    })
+
+    describe('When the Contract has more than 5 approvals in the last 10 blocks', () => {
+      beforeEach(() => {
+        logStore.contractCount = jest.fn((addr, blockN) => {
+          if (addr === contractAddress && blockN === blockNumber) {
+            return 10
+          } else if (addr === contractAddress && blockN === (blockNumber - 1)) {
+            return 6
+          } else {
+            return 0
+          }
+        })
+
+        let count = 0
+        for (let i = 1; i <= 10; i++) {
+          count += logStore.contractCount(contractAddress, blockNumber - i)
+        }
+        assert(count > 5)
+      })
+
+      test('Does nothing', async () => {
+        const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+
+        const log = generateLog({
+          address: contractAddress,
+          blockNumber
+        })
+
+        releaseDetector.onLog(log)
+
+        expect(releaseListener.release).toBeUndefined()
+      })
+    })
+  })
+
+  describe('When the Contract has less than 10 approvals in the current block', () => {
+    beforeEach(() => {
+      logStore.contractCount = jest.fn((addr, blockN) => {
+        if (addr === contractAddress && blockN === blockNumber) {
+          return 9
+        } else {
+          return 0
+        }
+      })
+
+      assert(logStore.contractCount(contractAddress, blockNumber) < 10)
+    })
+
+    test('Does nothing', async () => {
+      const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+
+      const log = generateLog({
+        address: contractAddress,
+        blockNumber
+      })
+
+      releaseDetector.onLog(log)
+
+      expect(releaseListener.release).toBeUndefined()
     })
   })
 })
