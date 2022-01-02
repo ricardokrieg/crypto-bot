@@ -1,6 +1,6 @@
 import FeeChecker, {FeeResponse, IFeeProvider} from '../../src/FeeChecker'
 import delay from '../../src/utils/Delay'
-import {FeeCheckerResult} from "../../src/ContractChecker";
+import {FeeCheckerResult} from '../../src/ContractChecker'
 
 const contractAddress = '0x1'
 
