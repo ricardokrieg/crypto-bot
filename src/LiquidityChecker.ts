@@ -1,7 +1,7 @@
 import {default as createLogger} from 'logging'
 import BigNumber from 'bignumber.js'
 
-import {LiquidityCheckerCallback, LiquidityCheckerResult, ILiquidityChecker} from './ContractChecker'
+import {LiquidityCheckerResult, ILiquidityChecker} from './ContractChecker'
 import delay from './utils/Delay'
 import EnhancedContract from './EnhancedContract'
 
@@ -24,7 +24,7 @@ export default class LiquidityChecker implements ILiquidityChecker {
     this.liquidityProvider = liquidityProvider
   }
 
-  async check(enhancedContract: EnhancedContract, onSuccess: LiquidityCheckerCallback, onFail: LiquidityCheckerCallback, timeout: number) {
+  async check(enhancedContract: EnhancedContract, timeout: number): Promise<LiquidityCheckerResult> {
     const startTime = Date.now()
 
     while (true) {
@@ -34,18 +34,16 @@ export default class LiquidityChecker implements ILiquidityChecker {
       const result: LiquidityCheckerResult = response
 
       if (response.error === undefined) {
-        onSuccess(result)
-        return
+        return Promise.resolve(result)
       } else {
         logger.warn(response.error.message)
       }
 
       if (Date.now() - startTime >= timeout) {
-        onFail({
+        return Promise.resolve({
           ...result,
           error: new Error('Timeout'),
         })
-        return
       }
 
       await delay(1000)

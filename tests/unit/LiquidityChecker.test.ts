@@ -22,9 +22,6 @@ class TestLiquidityProvider implements ILiquidityProvider {
   }
 }
 
-const onSuccess = jest.fn((_result: LiquidityCheckerResult) => {})
-const onFail = jest.fn((_result: LiquidityCheckerResult) => {})
-
 const liquidityProvider = new TestLiquidityProvider()
 
 afterEach(() => {
@@ -45,21 +42,20 @@ describe('When the liquidity provider returns error', () => {
   test('Does not return immediately', async () => {
     const liquidityChecker = new LiquidityChecker(liquidityProvider)
 
-    const promise = liquidityChecker.check(sampleEnhancedContract, onSuccess, onFail, 2500)
+    let done = false
+    const promise = liquidityChecker.check(sampleEnhancedContract, 2500)
+      .then((response) => {
+
+      })
+      .finally(() => done = true)
 
     await delay(2000)
 
-    expect(onSuccess).not.toBeCalled()
-    expect(onFail).not.toBeCalled()
+    expect(done).toBeFalsy()
 
     await delay(2000)
 
-    expect(onSuccess).not.toBeCalled()
-    expect(onFail).toBeCalledWith({
-      address: sampleEnhancedContract.address,
-      rate: new BigNumber(0),
-      error: new Error('Timeout')
-    })
+    expect(done).toBeTruthy()
 
     await promise
   })
@@ -78,15 +74,13 @@ describe('When the liquidity provider returns a successful response', () => {
   test('Calls the success callback', async () => {
     const liquidityChecker = new LiquidityChecker(liquidityProvider)
 
-    const promise = liquidityChecker.check(sampleEnhancedContract, onSuccess, onFail, 5000)
-
-    await delay(100)
-
-    expect(onSuccess).toBeCalledWith({
-      address: sampleEnhancedContract.address,
-      rate: new BigNumber(0.002)
-    })
-    expect(onFail).not.toBeCalled()
+    const promise = liquidityChecker.check(sampleEnhancedContract, 5000)
+      .then((response) => {
+        expect(response).toEqual({
+          address: sampleEnhancedContract.address,
+          rate: new BigNumber(0.002)
+        })
+      })
 
     await promise
   })

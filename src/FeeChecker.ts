@@ -1,6 +1,6 @@
 import {default as createLogger} from 'logging'
 
-import {FeeCheckerCallback, FeeCheckerResult, IFeeChecker} from './ContractChecker'
+import {FeeCheckerResult, IFeeChecker} from './ContractChecker'
 import delay from './utils/Delay'
 
 const logger = createLogger('FeeChecker')
@@ -26,7 +26,7 @@ export default class FeeChecker implements IFeeChecker {
     this.feeProvider = feeProvider
   }
 
-  async check(address: string, onSuccess: FeeCheckerCallback, onFail: FeeCheckerCallback, timeout: number) {
+  async check(address: string, timeout: number): Promise<FeeCheckerResult> {
     const startTime = Date.now()
 
     while (true) {
@@ -43,24 +43,21 @@ export default class FeeChecker implements IFeeChecker {
       }
 
       if (response.isHoneypot) {
-        onFail({
+        return Promise.resolve({
           ...result,
           error: new Error('Honeypot!'),
         })
-        return
       }
 
       if (response.error === undefined) {
-        onSuccess(result)
-        return
+        return Promise.resolve(result)
       }
 
       if (Date.now() - startTime >= timeout) {
-        onFail({
+        return Promise.resolve({
           ...result,
           error: new Error('Timeout'),
         })
-        return
       }
 
       await delay(1000)
