@@ -1,7 +1,7 @@
 import {Log} from 'web3-core'
 
 import LogMonitor, {ILogEmitter} from '../../src/LogMonitor'
-import {ILogReceiver} from '../../src/LogStore'
+import {ILogReceiver} from '../../src/ReleaseDetector'
 import {generateLog} from '../support/Log'
 
 class TestLogEmitter implements ILogEmitter {
@@ -30,14 +30,12 @@ test('Forwards logs from logEmitter to logReceiver', async () => {
   })
 
   const logEmitter = new TestLogEmitter(log)
-  const logReceiver1 = new TestLogReceiver()
-  const logReceiver2 = new TestLogReceiver()
+  const logReceiver = new TestLogReceiver()
 
-  const logMonitor = new LogMonitor(logEmitter, [logReceiver1, logReceiver2])
+  const logMonitor = new LogMonitor(logEmitter, logReceiver)
   await logMonitor.start()
 
-  expect(logReceiver1.log).toEqual(log)
-  expect(logReceiver2.log).toEqual(log)
+  expect(logReceiver.log).toEqual(log)
 })
 
 test('Does not forward a removed log', async () => {
@@ -46,14 +44,12 @@ test('Does not forward a removed log', async () => {
   })
 
   const logEmitter = new TestLogEmitter(log)
-  const logReceiver1 = new TestLogReceiver()
-  const logReceiver2 = new TestLogReceiver()
+  const logReceiver = new TestLogReceiver()
 
-  const logMonitor = new LogMonitor(logEmitter, [logReceiver1, logReceiver2])
+  const logMonitor = new LogMonitor(logEmitter, logReceiver)
   await logMonitor.start()
 
-  expect(logReceiver1.log).toBeUndefined()
-  expect(logReceiver2.log).toBeUndefined()
+  expect(logReceiver.log).toBeUndefined()
 })
 
 test('Does not forward a log that is not full approval', async () => {
@@ -62,12 +58,10 @@ test('Does not forward a log that is not full approval', async () => {
   })
 
   const logEmitter = new TestLogEmitter(log)
-  const logReceiver1 = new TestLogReceiver()
-  const logReceiver2 = new TestLogReceiver()
+  const logReceiver = new TestLogReceiver()
 
-  const logMonitor = new LogMonitor(logEmitter, [logReceiver1, logReceiver2])
+  const logMonitor = new LogMonitor(logEmitter, logReceiver)
   await logMonitor.start()
 
-  expect(logReceiver1.log).toBeUndefined()
-  expect(logReceiver2.log).toBeUndefined()
+  expect(logReceiver.log).toBeUndefined()
 })

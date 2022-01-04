@@ -1,7 +1,7 @@
 import assert from 'assert'
+import {Log} from 'web3-core'
 
-import ReleaseDetector from '../../src/ReleaseDetector'
-import {ILogStore} from '../../src/LogStore'
+import ReleaseDetector, {ILogStore} from '../../src/ReleaseDetector'
 import {IReleaseListener, Release} from '../../src/Sniper'
 import {generateLog} from '../support/Log'
 
@@ -14,6 +14,9 @@ class TestReleaseListener implements IReleaseListener {
 }
 
 class TestLogStore implements ILogStore {
+  add(_log: Log) {
+  }
+
   blockCount(): number {
     return 0
   }
@@ -30,6 +33,21 @@ const blockNumber = 1000
 
 afterEach(() => {
   releaseListener.release = undefined
+})
+
+test('Forwards the logs to the log store', async () => {
+  const spy = jest.spyOn(logStore, 'add')
+
+  const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+
+  const log = generateLog({
+    address: contractAddress,
+    blockNumber
+  })
+
+  releaseDetector.onLog(log)
+
+  expect(spy).toBeCalledWith(log)
 })
 
 describe('When the Log Store has less than 100 blocks', () => {

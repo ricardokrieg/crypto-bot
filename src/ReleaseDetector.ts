@@ -1,10 +1,19 @@
 import {Log} from 'web3-core'
 import {default as createLogger} from 'logging'
 
-import {ILogStore, ILogReceiver} from './LogStore'
 import {IReleaseListener} from './Sniper'
 
 const logger = createLogger('ReleaseDetector')
+
+export interface ILogReceiver {
+  onLog: (log: Log) => void
+}
+
+export interface ILogStore {
+  add: (log: Log) => void
+  blockCount: () => number
+  contractCount: (address: string, blockNumber: number) => number
+}
 
 export default class ReleaseDetector implements ILogReceiver {
   private readonly logStore: ILogStore
@@ -16,6 +25,8 @@ export default class ReleaseDetector implements ILogReceiver {
   }
 
   onLog(log: Log) {
+    this.logStore.add(log)
+
     if (this.logStore.blockCount() < 100) return
     if (this.logStore.contractCount(log.address, log.blockNumber) < 10) return
 

@@ -1,7 +1,7 @@
 import {Log} from 'web3-core'
 import {default as createLogger} from 'logging'
 
-import {ILogReceiver} from './LogStore'
+import {ILogReceiver} from './ReleaseDetector'
 
 const FULL_APPROVAL = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 
@@ -13,11 +13,11 @@ export interface ILogEmitter {
 
 export default class LogMonitor {
   private readonly logEmitter: ILogEmitter
-  private readonly logReceivers: ILogReceiver[]
+  private readonly logReceiver: ILogReceiver
 
-  constructor(logEmitter: ILogEmitter, logReceivers: ILogReceiver[]) {
-    this.logEmitter  = logEmitter
-    this.logReceivers = logReceivers
+  constructor(logEmitter: ILogEmitter, logReceiver: ILogReceiver) {
+    this.logEmitter = logEmitter
+    this.logReceiver = logReceiver
   }
 
   async start() {
@@ -33,9 +33,7 @@ export default class LogMonitor {
         return
       }
 
-      for (let logReceiver of this.logReceivers) {
-        logReceiver.onLog(log)
-      }
+      this.logReceiver.onLog(log)
     })
   }
 }

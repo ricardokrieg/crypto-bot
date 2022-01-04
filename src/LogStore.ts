@@ -1,23 +1,16 @@
 import {Log} from 'web3-core'
 import {default as createLogger} from 'logging'
 
+import {ILogStore} from './ReleaseDetector'
+
 const logger = createLogger('LogStore')
 
-export interface ILogReceiver {
-  onLog: (log: Log) => void
-}
-
-export interface ILogStore {
-  blockCount: () => number
-  contractCount: (address: string, blockNumber: number) => number
-}
-
-export default class LogStore implements ILogReceiver, ILogStore {
+export default class LogStore implements ILogStore {
   private firstBlock: number = 0
   private lastBlock: number = 0
   private readonly blocks: { [blockNumber: number]: string[] } = {}
 
-  onLog(log: Log) {
+  add(log: Log) {
     if (this.firstBlock === 0) {
       this.firstBlock = log.blockNumber
     }
