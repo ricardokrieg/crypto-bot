@@ -16,7 +16,7 @@ export default class Web3LogSubscriber implements ILogEmitter {
     this.web3 = web3
   }
 
-  subscribe(onLog: (log: Log) => void): void {
+  subscribe(onLog: (log: Log) => void) {
     logger.info(`Subscribing to Web3 logs`)
 
     this.web3.eth.subscribe(
