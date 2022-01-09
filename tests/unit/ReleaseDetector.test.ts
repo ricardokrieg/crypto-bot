@@ -2,14 +2,14 @@ import assert from 'assert'
 import {Log} from 'web3-core'
 
 import ReleaseDetector, {ILogStore} from '../../src/ReleaseDetector'
-import {IReleaseListener, Release} from '../../src/Sniper'
+import {ISniper} from '../../src/Sniper'
 import {generateLog} from '../support/Log'
 
-class TestReleaseListener implements IReleaseListener {
-  public release?: Release
+class TestSniper implements ISniper {
+  public address?: string
 
-  onRelease(release: Release): void {
-    this.release = release
+  add(address: string): void {
+    this.address = address
   }
 }
 
@@ -27,18 +27,18 @@ class TestLogStore implements ILogStore {
 }
 
 const logStore = new TestLogStore()
-const releaseListener = new TestReleaseListener()
+const sniper = new TestSniper()
 const contractAddress = '0x1'
 const blockNumber = 1000
 
 afterEach(() => {
-  releaseListener.release = undefined
+  sniper.address = undefined
 })
 
 test('Forwards the logs to the log store', async () => {
   const spy = jest.spyOn(logStore, 'add')
 
-  const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+  const releaseDetector = new ReleaseDetector(logStore, sniper)
 
   const log = generateLog({
     address: contractAddress,
@@ -50,25 +50,21 @@ test('Forwards the logs to the log store', async () => {
   expect(spy).toBeCalledWith(log)
 })
 
-describe('When the Log Store has less than 100 blocks', () => {
-  beforeEach(() => {
-    logStore.blockCount = jest.fn(() => 99)
+test('Does nothing when the Log Store has less than 100 blocks', () => {
+  logStore.blockCount = jest.fn(() => 99)
+  assert(logStore.blockCount() < 100)
+  assert(sniper.address === undefined)
 
-    assert(logStore.blockCount() < 100)
+  const releaseDetector = new ReleaseDetector(logStore, sniper)
+
+  const log = generateLog({
+    address: contractAddress,
+    blockNumber
   })
 
-  test('Does nothing', async () => {
-    const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+  releaseDetector.onLog(log)
 
-    const log = generateLog({
-      address: contractAddress,
-      blockNumber
-    })
-
-    releaseDetector.onLog(log)
-
-    expect(releaseListener.release).toBeUndefined()
-  })
+  expect(sniper.address).toBeUndefined()
 })
 
 describe('When the Log Store has 100 or more blocks', () => {
@@ -96,8 +92,8 @@ describe('When the Log Store has 100 or more blocks', () => {
         assert(logStore.contractCount(contractAddress, blockNumber - 2) === 0)
       })
 
-      test('Emits the Release to the release listener', async () => {
-        const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+      test('Sends the address to the Sniper', async () => {
+        const releaseDetector = new ReleaseDetector(logStore, sniper)
 
         const log = generateLog({
           address: contractAddress,
@@ -106,7 +102,7 @@ describe('When the Log Store has 100 or more blocks', () => {
 
         releaseDetector.onLog(log)
 
-        expect(releaseListener.release).toEqual({ address: contractAddress })
+        expect(sniper.address).toEqual(contractAddress)
       })
     })
 
@@ -128,7 +124,7 @@ describe('When the Log Store has 100 or more blocks', () => {
       })
 
       test('Does nothing', async () => {
-        const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+        const releaseDetector = new ReleaseDetector(logStore, sniper)
 
         const log = generateLog({
           address: contractAddress,
@@ -137,7 +133,7 @@ describe('When the Log Store has 100 or more blocks', () => {
 
         releaseDetector.onLog(log)
 
-        expect(releaseListener.release).toBeUndefined()
+        expect(sniper.address).toBeUndefined()
       })
     })
   })
@@ -156,7 +152,7 @@ describe('When the Log Store has 100 or more blocks', () => {
     })
 
     test('Does nothing', async () => {
-      const releaseDetector = new ReleaseDetector(logStore, releaseListener)
+      const releaseDetector = new ReleaseDetector(logStore, sniper)
 
       const log = generateLog({
         address: contractAddress,
@@ -165,7 +161,7 @@ describe('When the Log Store has 100 or more blocks', () => {
 
       releaseDetector.onLog(log)
 
-      expect(releaseListener.release).toBeUndefined()
+      expect(sniper.address).toBeUndefined()
     })
   })
 })

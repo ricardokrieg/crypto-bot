@@ -3,7 +3,7 @@ require('dotenv').config({ path: '.env' })
 import Web3 from 'web3'
 
 import LogMonitor from './LogMonitor'
-import LogStore from './LogStore'
+import InMemoryLogStore from './LogStore'
 import ReleaseDetector from './ReleaseDetector'
 import Sniper from './Sniper'
 import Web3LogSubscriber from './Web3LogSubscriber'
@@ -16,7 +16,7 @@ import Web3LogSubscriber from './Web3LogSubscriber'
 
   const web3LogSubscriber = new Web3LogSubscriber(web3)
 
-  const logStore = new LogStore()
+  const logStore = new InMemoryLogStore()
   const releaseDetector = new ReleaseDetector(logStore, sniper)
 
   const logMonitor = new LogMonitor(web3LogSubscriber, [logStore, releaseDetector])

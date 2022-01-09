@@ -5,7 +5,7 @@ import {ILogStore} from './ReleaseDetector'
 
 const logger = createLogger('LogStore')
 
-export default class LogStore implements ILogStore {
+export default class InMemoryLogStore implements ILogStore {
   private firstBlock: number = 0
   private lastBlock: number = 0
   private readonly blocks: { [blockNumber: number]: string[] } = {}

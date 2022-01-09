@@ -1,7 +1,7 @@
 import {Log} from 'web3-core'
 import {default as createLogger} from 'logging'
 
-import {IReleaseListener} from './Sniper'
+import {ISniper} from './Sniper'
 
 const logger = createLogger('ReleaseDetector')
 
@@ -17,11 +17,11 @@ export interface ILogStore {
 
 export default class ReleaseDetector implements ILogReceiver {
   private readonly logStore: ILogStore
-  private readonly releaseListener: IReleaseListener
+  private readonly sniper: ISniper
 
-  constructor(logStore: ILogStore, releaseListener: IReleaseListener) {
+  constructor(logStore: ILogStore, sniper: ISniper) {
     this.logStore = logStore
-    this.releaseListener = releaseListener
+    this.sniper = sniper
   }
 
   onLog(log: Log) {
@@ -37,6 +37,6 @@ export default class ReleaseDetector implements ILogReceiver {
 
     if (count > 5) return
 
-    this.releaseListener.onRelease({ address: log.address })
+    this.sniper.add(log.address)
   }
 }

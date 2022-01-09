@@ -15,7 +15,7 @@ test('Forwards logs from web3', async () => {
     callback(null, log)
   })
 
-  const onLog = jest.fn((log: Log) => {})
+  const onLog = jest.fn((_log: Log) => {})
 
   const web3LogSubscriber = new Web3LogSubscriber(web3)
   web3LogSubscriber.subscribe(onLog)

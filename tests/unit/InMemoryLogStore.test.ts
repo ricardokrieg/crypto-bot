@@ -1,8 +1,8 @@
-import LogStore from '../../src/LogStore'
+import InMemoryLogStore from '../../src/InMemoryLogStore'
 import {generateLog} from '../support/Log'
 
 test('Returns how many blocks it has stored', async () => {
-  const logStore = new LogStore()
+  const logStore = new InMemoryLogStore()
 
   for (let i = 1; i <= 3; i++) {
     const log = generateLog({
@@ -16,7 +16,7 @@ test('Returns how many blocks it has stored', async () => {
 })
 
 test('Returns the count of approvals for a specific Contract in a specific Block', async () => {
-  const logStore = new LogStore()
+  const logStore = new InMemoryLogStore()
 
   logStore.add(generateLog({
     address: '0x1',

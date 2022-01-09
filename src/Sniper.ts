@@ -1,44 +1,31 @@
 import {default as createLogger} from 'logging'
-import EnhancedContract from './EnhancedContract'
 
 const logger = createLogger('Sniper')
 
-export interface Release {
-  address: string
-}
-
-export interface IReleaseListener {
-  onRelease: (release: Release) => void
+export interface ISniper {
+  add: (address: string) => void
 }
 
 export interface IContractChecker {
-  check: (enhancedContract: EnhancedContract) => Promise<boolean>
+  check: (address: string) => Promise<boolean>
 }
 
-export interface IEnhancedContractBuilder {
-  build: (address: string) => Promise<EnhancedContract>
-}
-
-export default class Sniper implements IReleaseListener {
+export default class Sniper implements ISniper {
   private readonly contractChecker: IContractChecker
-  private readonly enhancedContractBuilder: IEnhancedContractBuilder
 
-  constructor(contractChecker: IContractChecker, enhancedContractBuilder: IEnhancedContractBuilder) {
+  constructor(contractChecker: IContractChecker) {
     this.contractChecker = contractChecker
-    this.enhancedContractBuilder = enhancedContractBuilder
   }
 
-  onRelease(release: Release) {
-    logger.info(release)
+  add(address: string) {
+    logger.info(address)
 
-    this.enhancedContractBuilder.build(release.address)
-      .then(async (enhancedContract: EnhancedContract) => {
-        const success = await this.contractChecker.check(enhancedContract)
-
+    this.contractChecker.check(address)
+      .then((success) => {
         if (success) {
-          logger.info(`Contract ${release.address} is ready!`)
+          logger.info(`Contract ${address} is ready!`)
         } else {
-          logger.warn(`Contract ${release.address} failed the check`)
+          logger.warn(`Contract ${address} failed the check`)
         }
       })
   }
