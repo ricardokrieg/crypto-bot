@@ -6,16 +6,19 @@ import {IFeeProvider, FeeResponse} from './FeeChecker'
 const logger = createLogger('HoneypotAPI')
 
 export default class HoneypotAPI implements IFeeProvider {
+  private readonly url: string
+
+  constructor(url: string) {
+    this.url = url
+  }
+
   async check(address: string): Promise<FeeResponse> {
     logger.info(`Checking ${address}`)
 
-    const response = await axios.get(
-    'https://aywt3wreda.execute-api.eu-west-1.amazonaws.com/default/IsHoneypot', {
-      params: {
-        chain: 'bsc2',
-        token: address
-      }
-    })
+    const params = { chain: 'bsc2', token: address }
+    logger.info(`${this.url} ${JSON.stringify(params)}`)
+
+    const response = await axios.get(this.url, { params })
     const data = response.data
 
     const buyFee = data['BuyTax']
@@ -24,27 +27,12 @@ export default class HoneypotAPI implements IFeeProvider {
     const sellGas = data['SellGas']
     const isHoneypot = data['IsHoneypot']
 
-    const feeResponse: FeeResponse = {
-      address,
+    return {
       buyFee,
       buyGas,
       sellFee,
       sellGas,
       isHoneypot,
     }
-
-    if (isHoneypot) {
-      feeResponse.error = new Error(`Honeypot!`)
-    } else if (buyFee > 20) {
-      feeResponse.error = new Error(`Buy Fee is too high: ${buyFee}%`)
-    } else if (sellFee > 20) {
-      feeResponse.error = new Error(`Sell Fee is too high: ${sellFee}%`)
-    } else if (buyGas > 2000000) {
-      feeResponse.error = new Error(`Buy Gas is too high: ${buyGas}`)
-    } else if (sellGas > 2000000) {
-      feeResponse.error = new Error(`Sell Gas is too high: ${sellGas}`)
-    }
-
-    return feeResponse
   }
 }
