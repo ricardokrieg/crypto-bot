@@ -1,20 +1,37 @@
-import ContractChecker from '../../src/ContractChecker'
-import delay from '../../src/utils/Delay'
+import ContractChecker, {IChecker} from '../../src/ContractChecker'
 
-const contractAddress = '0x1'
+class TestSuccessChecker implements IChecker {
+  check(_address: string, _timeout: number): Promise<boolean> {
+    return Promise.resolve(true)
+  }
+}
 
-const onSuccess = jest.fn((address: string) => {})
-const onFail = jest.fn((address: string) => {})
+class TestFailChecker implements IChecker {
+  check(_address: string, _timeout: number): Promise<boolean> {
+    return Promise.resolve(false)
+  }
+}
 
-describe('When the contract has no liquidity and fees are high', () => {
-  test('Does not return immediately', async () => {
-    const contractChecker = new ContractChecker()
+const address = '0x1'
 
-    contractChecker.check(contractAddress, onSuccess, onFail)
+test('returns true if both checkers returns true', async () => {
+  const feeChecker = new TestSuccessChecker()
+  const liquidityChecker = new TestSuccessChecker()
 
-    await delay(2000)
+  const contractChecker = new ContractChecker(feeChecker, liquidityChecker)
 
-    expect(onSuccess).not.toBeCalled()
-    expect(onFail).not.toBeCalled()
-  })
+  const success = await contractChecker.check(address)
+
+  expect(success).toBeTruthy()
+})
+
+test('returns false if one checker returns false', async () => {
+  const feeChecker = new TestSuccessChecker()
+  const liquidityChecker = new TestFailChecker()
+
+  const contractChecker = new ContractChecker(feeChecker, liquidityChecker)
+
+  const success = await contractChecker.check(address)
+
+  expect(success).toBeFalsy()
 })
