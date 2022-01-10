@@ -3,10 +3,9 @@ import delay from '../../src/utils/Delay'
 
 const contractAddress = '0x1'
 
-class TestFeeProvider implements IFeeProvider {
-  async check(address: string): Promise<FeeResponse> {
+class TestSuccessFeeProvider implements IFeeProvider {
+  async check(_address: string): Promise<FeeResponse> {
     return Promise.resolve({
-      address,
       buyFee: 0,
       buyGas: 0,
       sellFee: 0,
@@ -16,119 +15,77 @@ class TestFeeProvider implements IFeeProvider {
   }
 }
 
-const feeProvider = new TestFeeProvider()
-
-afterEach(() => {
-  jest.clearAllMocks()
-})
-
-describe('When the fee provider returns error', () => {
-  beforeEach(() => {
-    feeProvider.check = jest.fn((address) => {
-      return Promise.resolve({
-        address,
-        buyFee: 90,
-        buyGas: 1000000,
-        sellFee: 0,
-        sellGas: 1000000,
-        isHoneypot: false,
-        error: new Error('Buy Fee is too high: 90%')
-      })
+class TestHighBuyFeeProvider implements IFeeProvider {
+  async check(_address: string): Promise<FeeResponse> {
+    return Promise.resolve({
+      buyFee: 95,
+      buyGas: 0,
+      sellFee: 0,
+      sellGas: 0,
+      isHoneypot: false
     })
-  })
+  }
+}
 
-  test('Does not return immediately', async () => {
-    const feeChecker = new FeeChecker(feeProvider)
-
-    let done = false
-    const promise = feeChecker.check(contractAddress, 2500)
-      .then((response) => {
-        expect(response).toEqual({
-          address: contractAddress,
-          buyFee: 90,
-          buyGas: 1000000,
-          sellFee: 0,
-          sellGas: 1000000,
-          error: new Error('Timeout')
-        })
-      })
-      .finally(() => done = true)
-
-    await delay(2000)
-
-    expect(done).toBeFalsy()
-
-    await delay(2000)
-
-    expect(done).toBeTruthy()
-
-    await promise
-  })
-})
-
-describe('When the fee provider returns a Honeypot error', () => {
-  beforeEach(() => {
-    feeProvider.check = jest.fn((address) => {
-      return Promise.resolve({
-        address,
-        buyFee: 0,
-        buyGas: 0,
-        sellFee: 0,
-        sellGas: 0,
-        isHoneypot: true,
-        error: new Error('Honeypot!')
-      })
+class TestHoneypotFeeProvider implements IFeeProvider {
+  async check(_address: string): Promise<FeeResponse> {
+    return Promise.resolve({
+      buyFee: 0,
+      buyGas: 0,
+      sellFee: 0,
+      sellGas: 0,
+      isHoneypot: true
     })
-  })
+  }
+}
 
-  test('Calls the fail callback', async () => {
-    const feeChecker = new FeeChecker(feeProvider)
+test('Returns true when the contract is valid', async () => {
+  const feeProvider = new TestSuccessFeeProvider()
+  const feeChecker = new FeeChecker(feeProvider)
 
-    const promise = feeChecker.check(contractAddress, 5000)
-      .then((response) => {
-        expect(response).toEqual({
-          address: contractAddress,
-          buyFee: 0,
-          buyGas: 0,
-          sellFee: 0,
-          sellGas: 0,
-          error: new Error('Honeypot!')
-        })
-      })
+  const success = await feeChecker.check(contractAddress, 5000)
 
-    await promise
-  })
+  expect(success).toBeTruthy()
 })
 
-describe('When the fee provider returns a successful response', () => {
-  beforeEach(() => {
-    feeProvider.check = jest.fn((address) => {
-      return Promise.resolve({
-        address,
-        buyFee: 5,
-        buyGas: 1500000,
-        sellFee: 10,
-        sellGas: 1800000,
-        isHoneypot: false,
-      })
+test('Returns false when the contract has high fees', async () => {
+  const feeProvider = new TestHighBuyFeeProvider()
+  const feeChecker = new FeeChecker(feeProvider)
+
+  let done = false
+  feeChecker
+    .check(contractAddress, 2500)
+    .then((response) => {
+      expect(response).toBeFalsy()
     })
-  })
+    .finally(() => done = true)
 
-  test('Calls the success callback', async () => {
-    const feeChecker = new FeeChecker(feeProvider)
+  await delay(2000)
 
-    const promise = feeChecker.check(contractAddress, 5000)
-      .then((response) => {
-        expect(response).toEqual({
-          address: contractAddress,
-          buyFee: 5,
-          buyGas: 1500000,
-          sellFee: 10,
-          sellGas: 1800000,
-        })
-      })
+  expect(done).toBeFalsy()
 
-    await promise
-  })
+  await delay(2000)
+
+  expect(done).toBeTruthy()
 })
 
+test('Returns false when the contract is a honeypot', async () => {
+  const feeProvider = new TestHoneypotFeeProvider()
+  const feeChecker = new FeeChecker(feeProvider)
+
+  let done = false
+  feeChecker
+    .check(contractAddress, 2500)
+    .then((response) => {
+      expect(response).toBeFalsy()
+    })
+    .finally(() => done = true)
+
+  await delay(2000)
+
+  expect(done).toBeFalsy()
+
+  await delay(2000)
+
+  expect(done).toBeTruthy()
+})
