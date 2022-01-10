@@ -1,49 +1,36 @@
 import {default as createLogger} from 'logging'
 import BigNumber from 'bignumber.js'
 
-import {LiquidityCheckerResult, ILiquidityChecker} from './ContractChecker'
+import {IChecker} from './ContractChecker'
 import delay from './utils/Delay'
-import EnhancedContract from './EnhancedContract'
 
 const logger = createLogger('LiquidityChecker')
 
-export interface LiquidityResponse {
-  address: string
-  rate: BigNumber
-  error?: Error
-}
-
 export interface ILiquidityProvider {
-  check: (contract: EnhancedContract) => Promise<LiquidityResponse>
+  check: (address: string) => Promise<BigNumber>
 }
 
-export default class LiquidityChecker implements ILiquidityChecker {
+export default class LiquidityChecker implements IChecker {
   private readonly liquidityProvider: ILiquidityProvider
 
   constructor(liquidityProvider: ILiquidityProvider) {
     this.liquidityProvider = liquidityProvider
   }
 
-  async check(enhancedContract: EnhancedContract, timeout: number): Promise<LiquidityCheckerResult> {
+  async check(address: string, timeout: number): Promise<boolean> {
     const startTime = Date.now()
 
     while (true) {
-      logger.info(`Checking ${enhancedContract.address}`)
+      logger.info(`Checking ${address}`)
 
-      const response: LiquidityResponse = await this.liquidityProvider.check(enhancedContract!)
-      const result: LiquidityCheckerResult = response
+      const rate: BigNumber = await this.liquidityProvider.check(address)
 
-      if (response.error === undefined) {
-        return Promise.resolve(result)
-      } else {
-        logger.warn(response.error.message)
+      if (!rate.isZero()) {
+        return Promise.resolve(true)
       }
 
       if (Date.now() - startTime >= timeout) {
-        return Promise.resolve({
-          ...result,
-          error: new Error('Timeout'),
-        })
+        return Promise.resolve(false)
       }
 
       await delay(1000)
