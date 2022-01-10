@@ -1,27 +1,29 @@
 import {default as createLogger} from 'logging'
 import BigNumber from 'bignumber.js'
 
-import {ILiquidityProvider, LiquidityResponse} from './LiquidityChecker'
-import EnhancedContract from './EnhancedContract'
+import {ILiquidityProvider} from './LiquidityChecker'
+import {IEnhancedContract} from './EnhancedContract'
+import {IEnhancedContractBuilder} from './EnhancedContractBuilder'
 
 const logger = createLogger('LiquidityProvider')
 
-export default class LiquidityProvider implements ILiquidityProvider {
-  private readonly pancakeSwapContract: EnhancedContract
-  private readonly wbnbContract: EnhancedContract
+const zero = new BigNumber(0)
 
-  constructor(pancakeSwapContract: EnhancedContract, wbnbContract: EnhancedContract) {
+export default class PancakeLiquidityProvider implements ILiquidityProvider {
+  private readonly pancakeSwapContract: IEnhancedContract
+  private readonly wbnbContract: IEnhancedContract
+  private readonly enhancedContractBuilder: IEnhancedContractBuilder
+
+  constructor(pancakeSwapContract: IEnhancedContract, wbnbContract: IEnhancedContract, enhancedContractBuilder: IEnhancedContractBuilder) {
     this.pancakeSwapContract = pancakeSwapContract
     this.wbnbContract = wbnbContract
+    this.enhancedContractBuilder = enhancedContractBuilder
   }
 
-  async check(contract: EnhancedContract): Promise<LiquidityResponse> {
-    logger.info(`Checking ${contract.address}`)
+  async check(address: string): Promise<BigNumber> {
+    logger.info(`Checking ${address}`)
 
-    const response: LiquidityResponse = {
-      address: contract.address,
-      rate: new BigNumber(0)
-    }
+    const contract: IEnhancedContract = await this.enhancedContractBuilder.build(address)
 
     const pairAddress = await this.pancakeSwapContract.getPair(
       contract.address,
@@ -30,10 +32,9 @@ export default class LiquidityProvider implements ILiquidityProvider {
     logger.info(`Pair Address: ${pairAddress}`)
 
     if (/^0x0+$/.test(pairAddress)) {
-      return {
-        ...response,
-        error: new Error(`Contract does not exist on PancakeSwap`)
-      }
+      logger.warn(`Contract does not exist on PancakeSwap`)
+
+      return Promise.resolve(zero)
     }
 
     const wbnbBalance = await this.wbnbContract.balanceOf(pairAddress)
@@ -41,10 +42,7 @@ export default class LiquidityProvider implements ILiquidityProvider {
     logger.info(`WBNB Balance: ${wbnbBalance.toString()} (${wbnbnCoinBalance.toString()})`)
 
     if (wbnbBalance.isZero()) {
-      return {
-        ...response,
-        error: new Error(`Contract does not have liquidity`)
-      }
+      return Promise.resolve(zero)
     }
 
     const balance = await contract.balanceOf(pairAddress)
@@ -52,18 +50,12 @@ export default class LiquidityProvider implements ILiquidityProvider {
     logger.info(`Balance: ${balance.toString()} (${coinBalance.toString()})`)
 
     if (balance.isZero()) {
-      return {
-        ...response,
-        error: new Error(`Contract does not have liquidity`)
-      }
+      return Promise.resolve(zero)
     }
 
     const rate = wbnbnCoinBalance.div(coinBalance)
     logger.info(`Rate: ${rate.toString()}`)
 
-    return {
-      ...response,
-      rate,
-    }
+    return rate
   }
 }
