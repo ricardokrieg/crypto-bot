@@ -13,7 +13,7 @@ export interface IAbiFetcher {
 }
 
 export interface IDecimalsFetcher {
-  fetchDecimals: (address: string) => Promise<number>
+  fetchDecimals: (contract: Contract) => Promise<number>
 }
 
 export default class EnhancedContractBuilder implements IEnhancedContractBuilder {
@@ -29,9 +29,8 @@ export default class EnhancedContractBuilder implements IEnhancedContractBuilder
 
   async build(address: string): Promise<IEnhancedContract> {
     const abi: AbiItem = await this.abiFetcher.fetchAbi(address)
-    const decimals: number = await this.decimalsFetcher.fetchDecimals(address)
-
     const contract: Contract = new this.web3.eth.Contract(abi, address)
+    const decimals: number = await this.decimalsFetcher.fetchDecimals(contract)
 
     return Promise.resolve(new EnhancedContract(contract, decimals))
   }

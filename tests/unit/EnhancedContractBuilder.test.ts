@@ -1,5 +1,6 @@
 import Web3 from 'web3'
 import {AbiItem} from 'web3-utils'
+import {Contract} from 'web3-eth-contract'
 
 import EnhancedContract from '../../src/EnhancedContract'
 import EnhancedContractBuilder, {IAbiFetcher, IDecimalsFetcher} from '../../src/EnhancedContractBuilder'
@@ -15,7 +16,7 @@ class TestAbiFetcher implements IAbiFetcher {
 }
 
 class TestDecimalsFetcher implements IDecimalsFetcher {
-  fetchDecimals(_address: string): Promise<number> {
+  fetchDecimals(_contract: Contract): Promise<number> {
     return Promise.resolve(9)
   }
 }
