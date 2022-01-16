@@ -27,6 +27,9 @@ export default class ContractChecker implements IContractChecker {
     const feeSuccess = await feePromise
     const liquiditySuccess = await liquidityPromise
 
+    logger.info(`Fee Checker:       ${feeSuccess}`)
+    logger.info(`Liquidity Checker: ${liquiditySuccess}`)
+
     return Promise.resolve(feeSuccess && liquiditySuccess)
   }
 }

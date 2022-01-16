@@ -9,7 +9,10 @@ export default class Web3DecimalsFetcher implements IDecimalsFetcher {
   async fetchDecimals(contract: Contract): Promise<number> {
     logger.info(`Fetching decimals for ${contract.options.address}`)
 
-    const decimalsStr = await contract.methods.decimals().call()
-    return Promise.resolve(parseInt(decimalsStr))
+    const decimals = parseInt(await contract.methods.decimals().call())
+
+    logger.info(`Decimals: ${decimals}`)
+
+    return Promise.resolve(decimals)
   }
 }

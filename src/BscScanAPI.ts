@@ -15,12 +15,12 @@ export default class BscScanAPI implements IAbiFetcher {
   }
 
   async fetchAbi(address: string): Promise<AbiItem> {
-    logger.debug(`fetching Abi for ${address}`)
+    logger.info(`fetching Abi for ${address}`)
     const abi: any = await contract.getContractAbi(address)
-    logger.info(abi)
 
     if (typeof abi !== 'string') throw new Error(`Invalid BscScan API Response: ${abi.message}`)
 
+    logger.info(`Abi fetched successfully!`)
     return Promise.resolve(JSON.parse(abi as string) as AbiItem)
   }
 }

@@ -39,7 +39,7 @@ export default class PancakeLiquidityProvider implements ILiquidityProvider {
 
     const wbnbBalance = await this.wbnbContract.balanceOf(pairAddress)
     const wbnbnCoinBalance = wbnbBalance.div(new BigNumber(10).pow(this.wbnbContract.decimals))
-    logger.info(`WBNB Balance: ${wbnbBalance.toString()} (${wbnbnCoinBalance.toString()})`)
+    logger.info(`WBNB Balance: ${wbnbBalance.toString(10)} (${wbnbnCoinBalance.toString(10)})`)
 
     if (wbnbBalance.isZero()) {
       return Promise.resolve(zero)
@@ -47,14 +47,14 @@ export default class PancakeLiquidityProvider implements ILiquidityProvider {
 
     const balance = await contract.balanceOf(pairAddress)
     const coinBalance = balance.div(new BigNumber(10).pow(contract.decimals))
-    logger.info(`Balance: ${balance.toString()} (${coinBalance.toString()})`)
+    logger.info(`Balance: ${balance.toString(10)} (${coinBalance.toString(10)})`)
 
     if (balance.isZero()) {
       return Promise.resolve(zero)
     }
 
     const rate = wbnbnCoinBalance.div(coinBalance)
-    logger.info(`Rate: ${rate.toString()}`)
+    logger.info(`Rate: ${rate.toString(10)}`)
 
     return rate
   }

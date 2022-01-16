@@ -27,6 +27,12 @@ export default class ReleaseDetector implements ILogReceiver {
   onLog(log: Log) {
     this.logStore.add(log)
 
+    const blockCount = this.logStore.blockCount()
+    const contractCount = this.logStore.contractCount(log.address, log.blockNumber)
+
+    logger.debug(`Block Count: ${blockCount} (min 10)`)
+    logger.debug(`Contract Count (last block): ${contractCount} (min 10)`)
+
     if (this.logStore.blockCount() < 10) return
     if (this.logStore.contractCount(log.address, log.blockNumber) < 10) return
 
@@ -34,6 +40,8 @@ export default class ReleaseDetector implements ILogReceiver {
     for (let i = 1; i <= 10; i++) {
       count += this.logStore.contractCount(log.address, log.blockNumber - i)
     }
+
+    logger.debug(`Contract Count (previous blocks): ${count} (max 5)`)
 
     if (count > 5) return
 

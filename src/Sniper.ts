@@ -18,7 +18,7 @@ export default class Sniper implements ISniper {
   }
 
   add(address: string) {
-    logger.info(address)
+    logger.info(`Starting ${address}`)
 
     this.contractChecker.check(address)
       .then((success) => {

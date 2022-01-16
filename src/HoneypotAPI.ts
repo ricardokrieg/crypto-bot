@@ -27,12 +27,16 @@ export default class HoneypotAPI implements IFeeProvider {
     const sellGas = data['SellGas']
     const isHoneypot = data['IsHoneypot']
 
-    return {
+    const result = {
       buyFee,
       buyGas,
       sellFee,
       sellGas,
       isHoneypot,
     }
+
+    logger.info(result)
+
+    return Promise.resolve(result)
   }
 }

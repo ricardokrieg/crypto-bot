@@ -24,6 +24,8 @@ export default class LogMonitor {
     logger.info('Start')
 
     this.logEmitter.subscribe((log: Log) => {
+      logger.debug(log)
+
       // @ts-ignore
       if (log.removed) {
         return
