@@ -1,36 +1,31 @@
 import Sniper, {IContractChecker} from '../../src/Sniper'
 
-class TestContractChecker implements IContractChecker {
+class TestSuccessContractChecker implements IContractChecker {
   check(_address: string): Promise<boolean> {
     return Promise.resolve(true)
   }
 }
 
+class TestFailContractChecker implements IContractChecker {
+  check(_address: string): Promise<boolean> {
+    return Promise.resolve(false)
+  }
+}
+
 const address = '0x1'
-const contractChecker = new TestContractChecker()
 
-describe('When the contract passes the check', () => {
-  beforeAll(() => {
-    jest.spyOn(contractChecker, 'check').mockImplementation(() => {
-      return Promise.resolve(true)
-    })
-  })
+test('Does nothing when the contract passes the check', async () => {
+  const sniper = new Sniper(new TestSuccessContractChecker())
 
-  test('does nothing', async () => {
-    const sniper = new Sniper(contractChecker)
+  sniper.add(address)
 
-    sniper.add(address)
-
-    expect(true).toBeTruthy()
-  })
+  expect(true).toBeTruthy()
 })
 
-describe('When the contract does not pass the check', () => {
-  test('does nothing', async () => {
-    const sniper = new Sniper(contractChecker)
+test('Does nothing when the contract does not pass the check', async () => {
+  const sniper = new Sniper(new TestFailContractChecker())
 
-    sniper.add(address)
+  sniper.add(address)
 
-    expect(true).toBeTruthy()
-  })
+  expect(true).toBeTruthy()
 })
