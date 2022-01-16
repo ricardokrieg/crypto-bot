@@ -1,7 +1,14 @@
 import {Contract} from 'web3-eth-contract'
 import BigNumber from 'bignumber.js'
 
-export default class EnhancedContract {
+export interface IEnhancedContract {
+  address: string
+  decimals: number
+  getPair: (address1: string, address2: string) => Promise<string>
+  balanceOf: (address: string) => Promise<BigNumber>
+}
+
+export default class EnhancedContract implements IEnhancedContract {
   private readonly _contract: Contract
   public readonly address: string
   public readonly decimals: number
