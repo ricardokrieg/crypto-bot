@@ -8,8 +8,10 @@ import {generateLog} from '../support/Log'
 class TestSniper implements ISniper {
   public address?: string
 
-  add(address: string): void {
+  add(address: string): Promise<void> {
     this.address = address
+
+    return Promise.resolve()
   }
 }
 

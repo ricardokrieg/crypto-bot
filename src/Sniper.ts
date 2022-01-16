@@ -1,9 +1,11 @@
 import {default as createLogger} from 'logging'
 
+import {IExchanger} from './Exchanger'
+
 const logger = createLogger('Sniper')
 
 export interface ISniper {
-  add: (address: string) => void
+  add: (address: string) => Promise<void>
 }
 
 export interface IContractChecker {
@@ -12,21 +14,25 @@ export interface IContractChecker {
 
 export default class Sniper implements ISniper {
   private readonly contractChecker: IContractChecker
+  private readonly exchanger: IExchanger
 
-  constructor(contractChecker: IContractChecker) {
+  constructor(contractChecker: IContractChecker, exchanger: IExchanger) {
     this.contractChecker = contractChecker
+    this.exchanger = exchanger
   }
 
-  add(address: string) {
+  async add(address: string) {
     logger.info(`Starting ${address}`)
 
-    this.contractChecker.check(address)
-      .then((success) => {
-        if (success) {
-          logger.info(`Contract ${address} is ready!`)
-        } else {
-          logger.warn(`Contract ${address} failed the check`)
-        }
-      })
+    const success = await this.contractChecker.check(address)
+
+    if (success) {
+      logger.info(`Contract ${address} is ready!`)
+      this.exchanger.trade(address).then(() => {})
+    } else {
+      logger.warn(`Contract ${address} failed the check`)
+    }
+
+    return Promise.resolve()
   }
 }

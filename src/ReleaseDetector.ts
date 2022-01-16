@@ -45,6 +45,6 @@ export default class ReleaseDetector implements ILogReceiver {
 
     if (count > 5) return
 
-    this.sniper.add(log.address)
+    this.sniper.add(log.address).then(() => {})
   }
 }
