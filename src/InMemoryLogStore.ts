@@ -21,8 +21,6 @@ export default class InMemoryLogStore implements ILogStore {
 
     const block = this.blocks[log.blockNumber] || []
     this.blocks[log.blockNumber] = [ ...block, log.address ]
-
-    logger.info(`Block Count: ${this.blockCount()}`)
   }
 
   blockCount(): number {

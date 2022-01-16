@@ -5,17 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest tests/unit",
-    "start": "npx ts-node src/index.ts",
-    "fishtown": "npx ts-node src/fishtown.ts",
-    "playground/web3_builder": "npx ts-node playground/web3_builder.ts",
-    "playground/exchange": "npx ts-node playground/exchange.ts",
-    "playground/contract": "npx ts-node playground/contract.ts",
-    "playground/bsc_scan_api": "npx ts-node playground/bsc_scan_api.ts",
-    "playground/honeypot_api": "npx ts-node playground/honeypot_api.ts",
-    "playground/log_monitor": "npx ts-node playground/LogMonitor.ts",
-    "playground/approve_detector": "npx ts-node playground/ApproveDetector.ts",
-    "playground/fee_checker": "npx ts-node playground/FeeChecker.ts",
-    "playground/liquidity_checker": "npx ts-node playground/LiquidityChecker.ts"
+    "start": "npx ts-node src/index.ts"
   },
   "author": "",
   "license": "ISC",
